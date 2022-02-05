@@ -1,25 +1,43 @@
-//Login, checks if User is included in Database 
+import { database } from "../main" //.. heißt ein Ordner drüber also src
+let prompts = require('prompts');
 
-let vNameString: string;
+export class Login {
+    private username: string = "";
+    private password: string = "";
 
-async function handlePrüfen(): Promise<void> {
-    let formData: FormData = new FormData(document.forms[0]);
-    let url: string = "http://localhost:8100";
-    let query: URLSearchParams = new URLSearchParams(<any> formData);
-    url = url + "/login" + "?" + query.toString();    
-    vNameString = (<HTMLInputElement>document.getElementById("vnameID")).value;
+    public async handleCheck(): Promise<void> {
+        console.log("Welcome to your own ERCM system\n Log in");
+        let proceed: boolean = false;
+        while (!proceed) {
+            let response = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'Enter your username?',
+            });
+            this.username = response.value;
+            let userExist: boolean = await database.checkUser(this.username);
+            if (userExist) {
+                response = await prompts({
+                    type: 'password',
+                    name: 'value',
+                    message: 'Enter your password',
+                });
+                this.password = response.value;
 
-    localStorage.setItem("vorname", vNameString);
-    let antwort: Response = await fetch(url, { method: "get" });
-    let antwort2: string = await antwort.text(); 
-  
-    if (antwort2 == "true") {
-        localStorage.setItem("x", "true");
-        window.location.href = "http://127.0.0.1:5500/Endabgabe/Chatrooms.html";
+                if (await database.checkUser(this.username, this.password)) {
+                    proceed = true;
+                } else {
+                    console.log("Password is wrong")
+                }
+            } else {
+                console.log("Username doesnt exists");
+            }
+        }
+
+        let KEYUSERNAME: string = "Username"
+        // localStorage.setItem(KEYUSERNAME, this.username);
+        console.log("Hello " + this.username)
+        // username = localStorage.getItem(KEYUSERNAME);
     }
-    //Benutzername existier aber Passwort ist falsch--> einfügen
-    else if (antwort2 == "false") {
-        localStorage.setItem("x", "false");
-        alert("Du hast keinen gültigen Account");
-    }
+
 }
