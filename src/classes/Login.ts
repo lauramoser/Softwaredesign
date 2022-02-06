@@ -1,13 +1,15 @@
 import { database } from "../main" //.. heißt ein Ordner drüber also src
+import { User } from "./User";
 let prompts = require('prompts');
 
 export class Login {
     private username: string = "";
     private password: string = "";
 
-    public async handleCheck(): Promise<void> {
+    public async checkLogin(): Promise<User> {
         console.log("Welcome to your own ERCM system\n Log in");
         let proceed: boolean = false;
+        let user: User;
         while (!proceed) {
             let response = await prompts({
                 type: 'text',
@@ -15,8 +17,8 @@ export class Login {
                 message: 'Enter your username?',
             });
             this.username = response.value;
-            let userExist: boolean = await database.checkUser(this.username);
-            if (userExist) {
+            user = await database.checkUser(this.username);
+            if (user) {
                 response = await prompts({
                     type: 'password',
                     name: 'value',
@@ -24,7 +26,8 @@ export class Login {
                 });
                 this.password = response.value;
 
-                if (await database.checkUser(this.username, this.password)) {
+                user = await database.checkUser(this.username, this.password);
+                if (user) {
                     proceed = true;
                 } else {
                     console.log("Password is wrong")
@@ -36,8 +39,9 @@ export class Login {
 
         let KEYUSERNAME: string = "Username"
         // localStorage.setItem(KEYUSERNAME, this.username);
-        console.log("Hello " + this.username)
+        console.log("Hello " + this.username + "!")
         // username = localStorage.getItem(KEYUSERNAME);
+        return user;
     }
 
 }
