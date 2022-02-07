@@ -2,6 +2,7 @@ import { Database } from "./Database"
 import { Login } from "./classes/Login";
 import { User } from "./classes/User";
 import { Admin } from "./classes/Admin";
+import { Article } from "./classes/Article";
 
 export let database: Database = new Database();
 main();
@@ -21,7 +22,7 @@ async function main() {
     await mainMenu();
 }
 
-async function mainMenu() {
+ export async function mainMenu() {
     if (currentUser.role == false) {
         let response = await prompts
             ({
@@ -57,19 +58,23 @@ async function mainMenu() {
             });
         select = response.value;
     }
-    if(select == 1) {
-        await currentAdmin.createCustomer();
+    if (select == 1) {
+        await currentUser.createCustomer();
     }
-    if(select == 3) {
-        await currentAdmin.createOrder();
+    if (select == 3) {
+        await currentUser.createOrder();
     }
-    if(select == 5) {
+    if (select == 4) {
+        let article: Article = await currentUser.searchArticle();
+        console.log(article);
+    }
+    if (select == 5) {
         await currentAdmin.createArticle();
     }
     if (select == 6) {
         await currentAdmin.createUser();
     }
-    if(select == 7) {
+    if (select == 7) {
         await currentAdmin.changeRole();
     }
 }

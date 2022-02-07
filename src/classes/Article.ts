@@ -1,3 +1,5 @@
+import { database } from "../main";
+
 export class Article {
     public id: number;
     public description: string;
@@ -20,4 +22,7 @@ export class Article {
         this.discountOrderSize = discountOrderSize;
         this.associatedDiscount = associatedDiscount;
     }
+
+    
+
 } 

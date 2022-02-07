@@ -1,7 +1,7 @@
 import * as Mongo from "mongodb";
-import {User} from "./classes/User"
-import {Admin} from "./classes/Admin";
-import {Article} from "./classes/Article";
+import { User } from "./classes/User"
+import { Admin } from "./classes/Admin";
+import { Article } from "./classes/Article";
 import { Customer } from "./classes/Customer";
 import { Order } from "./classes/Order";
 
@@ -31,11 +31,74 @@ export class Database {
         return this.dbCustomer != undefined;
     }
 
+    public async saveOrder(id: number, orderDate: Date, deliveryDate: Date, orderAmount: number): Promise<Order> {
+        let orderdb: Order = <Order><unknown>await this.dbOrder.insertOne({ id: id, orderDate: orderDate, deliveryDate: deliveryDate, orderAmount: orderAmount })
+        let order: Order = undefined;
+        if (orderdb) {
+            order = new Order(orderdb.id, orderdb.orderDate, orderdb.deliveryDate, orderdb.orderAmount);
+        }
+        return order;
+    }
+
+    public async getAllOrder(): Promise<Order[]> {
+        let allOrder: Order[] = <Order[]><unknown>await this.dbOrder.find({}).toArray();
+        //TODO evtl in richtige Artikel konvertieren (new Article(...))
+        return allOrder;
+    }
+
+    public async saveCustomer(id: number, name: string, address: string, customerDiscount: number): Promise<Customer> {
+        let customerdb: Customer = <Customer><unknown>await this.dbCustomer.insertOne({ id: id, name: name, address: address, customerDiscount: customerDiscount })
+        let customer: Customer = undefined;
+        if (customerdb) {
+            customer = new Customer(customerdb.id, customerdb.name, customerdb.address, customerdb.customerDiscount);
+        }
+        return customer;
+    }
+
+    public async getAllCustomer(): Promise<Customer[]> {
+        let allCustomer: Customer[] = <Customer[]><unknown>await this.dbCustomer.find({}).toArray();
+        //TODO evtl in richtige Artikel konvertieren (new Article(...))
+        return allCustomer;
+    }
+
+    public async checkArticleId(id: number): Promise<boolean> {
+        let articledb: Article = <Article><unknown>await this.dbArticle.findOne({ id: id });
+        if (articledb) {
+            return true;
+        }
+        return false;
+    }
+
+    public async getAllArticle(): Promise<Article[]> {
+        let allArticle: Article[] = <Article[]><unknown>await this.dbArticle.find({}).toArray();
+        //TODO evtl in richtige Artikel konvertieren (new Article(...))
+        return allArticle;
+    }
+
+    public async saveArticle(id: number, description: string, dateOfMarketLaunch: Date, price: number, standardDeliveryTime: number, minimumOrderSize: number, maximumOrderSize: number, discountOrderSize: number, associatedDiscount: number): Promise<Article> {
+        let articledb: Article = <Article><unknown>await this.dbArticle.insertOne({ id: id, description: description, dateOfMarketLaunch: dateOfMarketLaunch, price: price, standardDeliveryTime: standardDeliveryTime, minimumOrderSize: minimumOrderSize, maximumOrderSize: maximumOrderSize, discountOrderSize: discountOrderSize, associatedDiscount: associatedDiscount });
+        let article: Article = undefined;
+        if (articledb) {
+            article = new Article(articledb.id, articledb.description, articledb.dateOfMarketLaunch, articledb.price, articledb.standardDeliveryTime, articledb.minimumOrderSize, articledb.maximumOrderSize, articledb.discountOrderSize, articledb.associatedDiscount);
+        }
+        return article;
+    }
+
+    public async deleteArticle(id: number): Promise<void> {
+        await this.dbArticle.deleteOne({ id: id });
+    }
+
+    public async changeArticle(articleOld: Article, articleNew: Article): Promise<Article> {
+        await this.deleteArticle(articleOld.id);
+        let article: Article = await this.saveArticle(articleNew.id, articleNew.description, articleNew.dateOfMarketLaunch, articleNew.price, articleNew.standardDeliveryTime, articleNew.minimumOrderSize, articleNew.maximumOrderSize, articleNew.discountOrderSize, articleNew.associatedDiscount);
+        return article;
+    }
+
     public async checkUser(username: string, password?: string): Promise<User> {
         let userdb: User;
         let user: User;
         if (password)
-            userdb = <User><unknown>await this.dbUser.findOne({ $and: [{ username: username }, { password: password }] }); 
+            userdb = <User><unknown>await this.dbUser.findOne({ $and: [{ username: username }, { password: password }] });
         else
             userdb = <User><unknown>await this.dbUser.findOne({ username: username });
 
@@ -56,33 +119,6 @@ export class Database {
             user = new User(userdb.username, userdb.password, userdb.role, userdb.gender);
         }
         return user;
-    }
-
-    public async saveArticle(id:number, description:string, dateOfMarketLaunch:Date, price:number, standardDeliveryTime:number, minimumOrderSize:number, maximumOrderSize:number, discountOrderSize:number, associatedDiscount:number): Promise<Article> {
-        let articledb: Article = <Article><unknown>await this.dbArticle.insertOne({ id:id, description:description, dateOfMarketLaunch:dateOfMarketLaunch, price:price, standardDeliveryTime:standardDeliveryTime, minimumOrderSize:minimumOrderSize, maximumOrderSize:maximumOrderSize, discountOrderSize:discountOrderSize, associatedDiscount:associatedDiscount});
-        let article: Article = undefined;
-        if (articledb) {
-            article = new Article(articledb.id, articledb.description, articledb.dateOfMarketLaunch, articledb.price, articledb.standardDeliveryTime, articledb.minimumOrderSize, articledb.maximumOrderSize, articledb.discountOrderSize, articledb.associatedDiscount);
-        }
-        return article;
-    }
-
-    public async saveCustomer(id:number, name:string, address:string, customerDiscount:number): Promise<Customer> {
-        let customerdb: Customer = <Customer><unknown>await this.dbCustomer.insertOne({id:id, name:name, address:address, customerDiscount:customerDiscount})
-        let customer: Customer = undefined;
-        if (customerdb) {
-            customer = new Customer(customerdb.id, customerdb.name, customerdb.address, customerdb.customerDiscount);
-        }
-        return customer;
-    }
-
-    public async saveOrder(id:number, orderDate:Date, deliveryDate:Date, orderAmount:number): Promise<Order>{
-        let orderdb: Order = <Order><unknown>await this.dbOrder.insertOne({id:id, orderDate:orderDate, deliveryDate:deliveryDate, orderAmount:orderAmount})
-        let order: Order = undefined;
-        if (orderdb) {
-            order = new Order(orderdb.id, orderdb.orderDate, orderdb.deliveryDate, orderdb.orderAmount);
-        }
-        return order;
     }
 
     public async changeUser(username: string, user: User): Promise<boolean> {
