@@ -11,6 +11,60 @@ export class Admin extends User {
         super(username, password, role, gender);
     }
 
+    public async createUser(): Promise<User> {
+        console.log("Please fill in all necessary data for the new User")
+        let response = await prompts({
+            type: 'text',
+            name: 'value',
+            message: 'Username:',
+        });
+        this.username = response.value;
+        let usernameAlreadyTaken: User = await database.checkUser(this.username);
+        if (!usernameAlreadyTaken) {
+            response = await prompts({
+                type: 'password',
+                name: 'value',
+                message: 'Password:',
+                min: 5,
+                max: 10
+            });
+            this.password = response.value;
+
+            response = await prompts({
+                type: 'select',
+                name: 'value',
+                message: 'What gender has the user?',
+                choices: [
+                    { title: 'female' },
+                    { title: 'male' },
+                    { title: 'diverse' },
+                ],
+            });
+            this.gender = response.value;
+
+            response = await prompts({
+                type: 'select',
+                name: 'value',
+                message: 'What role has the user?',
+                choices: [
+                    { title: 'Admin' },
+                    { title: 'User' },
+                ],
+            });
+            this.role = response.value;
+
+            if (!database.saveUser(this.username, this.password, this.gender, this.role)) {
+                console.log("Create user failed");
+                return this.createUser();
+            }
+        } else {
+            console.log("this username already exists.\nPlease choose another username!\n")
+            return this.createUser();
+        }
+        console.log("You have created an user")
+        await mainMenu();
+    }
+
     public async changeRole(): Promise<boolean> {
         console.log("From which user do you want to change the role?")
         let response = await prompts({
@@ -22,18 +76,22 @@ export class Admin extends User {
         let founduser: User = await database.checkUser(username);
         if (founduser) {
             founduser.role = !founduser.role;
-            if (await database.changeUser(username, founduser))    
-            return true;
+            if (await database.changeUser(username, founduser)){
+                console.log("You successfully changed the role of this user")
+                await mainMenu()
+                return true;
+            }
             else
                 return false;
         } else {
+            console.log("This user doesn't exist")
             return this.changeRole();
         }
     }
 
     public async createArticle(): Promise<Article> {
         let returnArticle: Article = undefined;
-        console.log("Please fill in all necessary data for the new article");
+        console.log("Please fill in all necessary data for the new article")
         let response = await prompts({
             type: 'number',
             name: 'value',
@@ -107,63 +165,9 @@ export class Admin extends User {
             console.log("this ID already exists.\nPlease choose another ID!\n");
             return this.createArticle();
         }
-        console.log("You have created an article")
+        console.log("You successfully created an article!")
         await mainMenu();
        
-    }
-
-    public async createUser(): Promise<User> {
-        console.log("Please fill in all necessary data for the new User");
-        let response = await prompts({
-            type: 'text',
-            name: 'value',
-            message: 'Username:',
-        });
-        this.username = response.value;
-        let usernameAlreadyTaken: User = await database.checkUser(this.username);
-        if (!usernameAlreadyTaken) {
-            response = await prompts({
-                type: 'password',
-                name: 'value',
-                message: 'Password:',
-                min: 5,
-                max: 10
-            });
-            this.password = response.value;
-
-            response = await prompts({
-                type: 'select',
-                name: 'value',
-                message: 'What gender has the user?',
-                choices: [
-                    { title: 'female' },
-                    { title: 'male' },
-                    { title: 'diverse' },
-                ],
-            });
-            this.gender = response.value;
-
-            response = await prompts({
-                type: 'select',
-                name: 'value',
-                message: 'What role has the user?',
-                choices: [
-                    { title: 'Admin' },
-                    { title: 'User' },
-                ],
-            });
-            this.role = response.value;
-
-            if (!database.saveUser(this.username, this.password, this.gender, this.role)) {
-                console.log("Create user failed");
-                return this.createUser();
-            }
-        } else {
-            console.log("this username already exists.\nPlease choose another username!\n");
-            return this.createUser();
-        }
-        console.log("You have created an user")
-        await mainMenu();
     }
 }
 

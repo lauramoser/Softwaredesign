@@ -46,6 +46,16 @@ export class Database {
         return allOrder;
     }
 
+    public async deleteOrder(id: number): Promise<void> {
+        await this.dbOrder.deleteOne({ id: id });
+    }
+
+    public async changeOrder(orderOld: Order, orderNew: Order): Promise<Order> {
+        await this.deleteOrder(orderOld.id);
+        let order: Order = await this.saveOrder(orderNew.id, orderNew.deliveryDate, orderNew.orderDate, orderNew.orderAmount);
+        return order;
+    }
+
     public async saveCustomer(id: number, name: string, address: string, customerDiscount: number): Promise<Customer> {
         let customerdb: Customer = <Customer><unknown>await this.dbCustomer.insertOne({ id: id, name: name, address: address, customerDiscount: customerDiscount })
         let customer: Customer = undefined;
@@ -59,6 +69,16 @@ export class Database {
         let allCustomer: Customer[] = <Customer[]><unknown>await this.dbCustomer.find({}).toArray();
         //TODO evtl in richtige Artikel konvertieren (new Article(...))
         return allCustomer;
+    }
+
+    public async deletCustomer(id: number): Promise<void> {
+        await this.dbCustomer.deleteOne({ id: id });
+    }
+
+    public async changeCustomer(customerOld: Customer, customerNew: Customer): Promise<Customer> {
+        await this.deleteOrder(customerOld.id);
+        let customer: Customer = await this.saveCustomer(customerNew.id, customerNew.name, customerNew.address, customerNew.customerDiscount);
+        return customer;
     }
 
     public async checkArticleId(id: number): Promise<boolean> {
