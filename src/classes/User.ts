@@ -12,6 +12,8 @@ export class User {
     public role: boolean;
     public gender: string;
 
+    // Array von ArticleOrders
+
     constructor(username: string, password: string, role: boolean, gender: string) {
         this.username = username;
         this.password = password;
@@ -44,6 +46,15 @@ export class User {
                 message: 'Amount of article:',  
             });
             let amountOfArticle = response.value;
+            //TODO
+            let price: number = 5;
+            let articleOrder: ArticleOrder = {
+                articleId: id, amount: amountOfArticle, price: price
+            }
+            // article Order in Array von ArticleOrders speichern
+            // sooft wie du willsch für alle Artikel
+            // Wenn fertig und bestellt werden soll
+            // CusomerOrder erstellen mit array von oben und in db speichern
 
             if (!database.saveOrder(id, amountOfArticle)) {
                 console.log("Create order failed");
@@ -61,7 +72,6 @@ export class User {
     public async summary(order: Order): Promise <void>{
 
     }
-
 
     public async searchOrder(askToEdit?: boolean): Promise<Order> {
         if (askToEdit == undefined)
