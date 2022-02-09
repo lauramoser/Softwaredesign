@@ -1,6 +1,5 @@
 import * as Mongo from "mongodb";
 import { User } from "./classes/User"
-import { Admin } from "./classes/Admin";
 import { Article } from "./classes/Article";
 import { Customer } from "./classes/Customer";
 import { Order } from "./classes/Order";
@@ -31,11 +30,11 @@ export class Database {
         return this.dbCustomer != undefined;
     }
 
-    public async saveOrder(id: number, orderDate: Date, deliveryDate: Date, orderAmount: number): Promise<Order> {
-        let orderdb: Order = <Order><unknown>await this.dbOrder.insertOne({ id: id, orderDate: orderDate, deliveryDate: deliveryDate, orderAmount: orderAmount })
+    public async saveOrder(id: number, amountOfArticle: number): Promise<Order> {
+        let orderdb: Order = <Order><unknown>await this.dbOrder.insertOne({ id: id, amountOfArticle: amountOfArticle })
         let order: Order = undefined;
         if (orderdb) {
-            order = new Order(orderdb.id, orderdb.orderDate, orderdb.deliveryDate, orderdb.orderAmount);
+            order = new Order(orderdb.id, orderdb.amountOfArticle);
         }
         return order;
     }
@@ -52,8 +51,16 @@ export class Database {
 
     public async changeOrder(orderOld: Order, orderNew: Order): Promise<Order> {
         await this.deleteOrder(orderOld.id);
-        let order: Order = await this.saveOrder(orderNew.id, orderNew.deliveryDate, orderNew.orderDate, orderNew.orderAmount);
+        let order: Order = await this.saveOrder(orderNew.id, orderNew.amountOfArticle);
         return order;
+    }
+
+    public async checkOrderId(id: number): Promise<boolean> {
+        let orderdb: Order = <Order><unknown>await this.dbOrder.findOne({ id: id });
+        if (orderdb) {
+            return true;
+        }
+        return false;
     }
 
     public async saveCustomer(id: number, name: string, address: string, customerDiscount: number): Promise<Customer> {
@@ -79,6 +86,14 @@ export class Database {
         await this.deleteOrder(customerOld.id);
         let customer: Customer = await this.saveCustomer(customerNew.id, customerNew.name, customerNew.address, customerNew.customerDiscount);
         return customer;
+    }
+
+    public async checkCustomerId(id: number): Promise<boolean> {
+        let customerdb: Customer = <Customer><unknown>await this.dbCustomer.findOne({ id: id });
+        if (customerdb) {
+            return true;
+        }
+        return false;
     }
 
     public async checkArticleId(id: number): Promise<boolean> {

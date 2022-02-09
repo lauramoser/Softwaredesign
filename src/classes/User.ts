@@ -19,8 +19,15 @@ export class User {
         this.role = role;
     }
 
-    public async createOrder(customer?: Customer, article?: Article): Promise<Order> {
+    public async createOrder(pCustomer?: Customer, pArticle?: Article): Promise<Order> {
+        let customer: Customer;
+        let article: Article;
+        if (pCustomer) {
+            customer = pCustomer;
 
+        } else if (pArticle) {
+            article = pArticle;
+        }
 
         console.log("Please fill in all necessary data for the new Order");
         let response = await prompts({
@@ -29,35 +36,32 @@ export class User {
             message: 'ID:',
         });
         let id = response.value;
+        let idAlreadyTaken: boolean = await database.checkOrderId(id);
+        if (!idAlreadyTaken) {
+            response = await prompts({
+                type: 'number',
+                name: 'value',
+                message: 'Amount of article:',  
+            });
+            let amountOfArticle = response.value;
 
-        response = await prompts({
-            type: 'date',
-            name: 'value',
-            message: 'Order date:',
-        });
-        let orderDate = response.value;
-
-        response = await prompts({
-            type: 'date',
-            name: 'value',
-            message: 'Delivery date:',  // TODO nicht ausgeben
-        });
-        let deliveryDate = response.value;
-
-        response = await prompts({
-            type: 'number',
-            name: 'value',
-            message: 'Order amount:',   // TODO nicht ausgeben
-        });
-        let orderAmount = response.value;
-
-        if (!database.saveOrder(id, orderDate, deliveryDate, orderAmount)) {
-            console.log("Create order failed");
-            return this.createOrder(customer);
+            if (!database.saveOrder(id, amountOfArticle)) {
+                console.log("Create order failed");
+                return this.createOrder(customer, article);
+            }
+        }
+        else {
+            console.log("this ID already exists.\nPlease choose another ID!\n");
+            return this.createOrder();
         }
         console.log("You successfully created an order")
-        await mainMenu();
+        await this.summary(order);
     }
+
+    public async summary(order: Order): Promise <void>{
+
+    }
+
 
     public async searchOrder(askToEdit?: boolean): Promise<Order> {
         if (askToEdit == undefined)
@@ -113,54 +117,17 @@ export class User {
         } else {
             order = await this.searchOrder(false);
         }
-        console.log(order)
         let response = await prompts({
             type: 'select',
             name: 'value',
             message: 'What would you like to change in this order?',
             choices: [
-                { title: 'Order date', value: 0 },
-                { title: 'Delivery date', value: 1 },
-                { title: 'Order amount', value: 2 },
+                { title: 'Amount of Article', value: 0 },
             ],
         });
         let select = response.value;
-        if (select == 0) {
-            console.log("Order date: " + order.orderDate)
-            response = await prompts({
-                type: 'text',
-                name: 'value',
-                message: 'Enter the new order date:',
-            });
-            let newOrderDateString: string = response.value;
-            let timestamp: number = Date.parse(newOrderDateString);
-            if (!isNaN(timestamp) && !undefined && newOrderDateString.match(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/)) {
-                let newOrderDate: Date = new Date(timestamp);
-                let newOrder: Order = new Order(order.id, newOrderDate, order.deliveryDate, order.orderAmount);
-                newOrder = await database.changeOrder(order, newOrder);
-            } else {
-                console.log("This is not a date. Try again");
-                return this.editOrder(order);
-            }
-        } else if (select == 1) {
-            console.log("Delivery date: " + order.deliveryDate)
-            let response = await prompts({
-                type: 'text',
-                name: 'value',
-                message: 'Enter the new delivery date:',
-            });
-            let newDeliveryDateString: string = response.value;
-            let timestamp: number = Date.parse(newDeliveryDateString);
-            if (!isNaN(timestamp) && !undefined && newDeliveryDateString.match(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/)) {
-                let newDeliveryDate: Date = new Date(timestamp)
-                let newOrder: Order = new Order(order.id, order.orderDate, newDeliveryDate, order.orderAmount);
-                newOrder = await database.changeOrder(order, newOrder);
-            } else {
-                console.log("This is not a date. Try again");
-                return this.editOrder(order);
-            }
-
-        } else if (select == 2) {
+       
+        if (select == 2) {
             console.log("Amount of Article: " + order.amountOfArticle)
             let response = await prompts({
                 type: 'number',
@@ -170,7 +137,7 @@ export class User {
             let newAmountOfArticle: number = response.value;
             if (newAmountOfArticle != undefined) {
                 if (newAmountOfArticle.toString().trim().length > 0) {
-                    let newOrder: Order = new Order(order.id, order.orderDate, order.deliveryDate, newAmountOfArticle);
+                    let newOrder: Order = new Order(order.id, newAmountOfArticle);
                     newOrder = await database.changeOrder(order, newOrder);
                 } else {
                     console.log("Please type in a number");
@@ -190,30 +157,36 @@ export class User {
             message: 'ID:',
         });
         let id = response.value;
+        let idAlreadyTaken: boolean = await database.checkCustomerId(id);
+        if (!idAlreadyTaken) {
+            response = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'Name:',
+            });
+            let name = response.value;
 
-        response = await prompts({
-            type: 'text',
-            name: 'value',
-            message: 'Name:',
-        });
-        let name = response.value;
+            response = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'address:',
+            });
+            let address = response.value;
 
-        response = await prompts({
-            type: 'text',
-            name: 'value',
-            message: 'address:',
-        });
-        let address = response.value;
+            response = await prompts({
+                type: 'number',
+                name: 'value',
+                message: 'Customer Discount:',
+            });
+            let customerDiscount = response.value;
 
-        response = await prompts({
-            type: 'number',
-            name: 'value',
-            message: 'Customer Discount:',
-        });
-        let customerDiscount = response.value;
-
-        if (!database.saveCustomer(id, name, address, customerDiscount)) {
-            console.log("Create article failed");
+            if (!database.saveCustomer(id, name, address, customerDiscount)) {
+                console.log("Create article failed");
+                return this.createCustomer();
+            }
+        }
+        else {
+            console.log("this ID already exists.\nPlease choose another ID!\n");
             return this.createCustomer();
         }
         console.log("You successfully created a customer")
