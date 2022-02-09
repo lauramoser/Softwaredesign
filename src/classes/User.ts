@@ -2,7 +2,7 @@ import { database, mainMenu } from "../main";
 import { Article } from "./Article";
 import { Customer } from "./Customer";
 import { Order } from "./Order";
-import * from "./Statistic";
+import { StatisticArticle, StatisticCustomer } from "./Statistic";
 
 let prompts = require('prompts');
 
@@ -19,7 +19,9 @@ export class User {
         this.role = role;
     }
 
-    public async createOrder(customer: Customer): Promise<Order> {
+    public async createOrder(customer?: Customer, article?: Article): Promise<Order> {
+
+
         console.log("Please fill in all necessary data for the new Order");
         let response = await prompts({
             type: 'number',
@@ -59,7 +61,7 @@ export class User {
 
     public async searchOrder(askToEdit?: boolean): Promise<Order> {
         if (askToEdit == undefined)
-        askToEdit = true;
+            askToEdit = true;
         let returnOrder: Order = undefined;
         let choices: { title: string }[] = [];
         let allOrder: Order[] = await database.getAllOrder();
@@ -92,13 +94,13 @@ export class User {
                 message: 'What do you want to do with this order?',
                 choices: [
                     { title: 'I want to edit the order', value: 0 },
-                    { title: 'I want to go back to the main Menu', value: 1},
+                    { title: 'I want to go back to the main Menu', value: 1 },
                 ],
             });
             let select = response.value;
             if (select == 0) {
                 returnOrder = await this.editOrder(returnOrder);
-            }else 
+            } else
                 await mainMenu();
         }
         return returnOrder;
@@ -107,7 +109,7 @@ export class User {
     public async editOrder(pOrder?: Order): Promise<Order> {
         let order: Order;
         if (pOrder) {
-            pOrder = order;
+            order = pOrder;
         } else {
             order = await this.searchOrder(false);
         }
@@ -130,9 +132,16 @@ export class User {
                 name: 'value',
                 message: 'Enter the new order date:',
             });
-            let newOrderDate: Date = response.value; //TODO aus string datum erstellen
-            let newOrder: Order = new Order(order.id, newOrderDate, order.deliveryDate, order.orderAmount);
-            newOrder = await database.changeOrder(order, newOrder);
+            let newOrderDateString: string = response.value;
+            let timestamp: number = Date.parse(newOrderDateString);
+            if (!isNaN(timestamp) && !undefined && newOrderDateString.match(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/)) {
+                let newOrderDate: Date = new Date(timestamp);
+                let newOrder: Order = new Order(order.id, newOrderDate, order.deliveryDate, order.orderAmount);
+                newOrder = await database.changeOrder(order, newOrder);
+            } else {
+                console.log("This is not a date. Try again");
+                return this.editOrder(order);
+            }
         } else if (select == 1) {
             console.log("Delivery date: " + order.deliveryDate)
             let response = await prompts({
@@ -140,20 +149,35 @@ export class User {
                 name: 'value',
                 message: 'Enter the new delivery date:',
             });
-            let newDeliveryDate: Date = response.value; //TODO aus string datum erstellen
-            let newOrder: Order = new Order(order.id, order.orderDate, newDeliveryDate, order.orderAmount);
-            newOrder = await database.changeOrder(order, newOrder);
+            let newDeliveryDateString: string = response.value;
+            let timestamp: number = Date.parse(newDeliveryDateString);
+            if (!isNaN(timestamp) && !undefined && newDeliveryDateString.match(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/)) {
+                let newDeliveryDate: Date = new Date(timestamp)
+                let newOrder: Order = new Order(order.id, order.orderDate, newDeliveryDate, order.orderAmount);
+                newOrder = await database.changeOrder(order, newOrder);
+            } else {
+                console.log("This is not a date. Try again");
+                return this.editOrder(order);
+            }
+
         } else if (select == 2) {
-            console.log("Order date: " + order.orderAmount)
+            console.log("Amount of Article: " + order.amountOfArticle)
             let response = await prompts({
-                type: 'text',
+                type: 'number',
                 name: 'value',
                 message: 'Enter the new order amount:',
             });
-            let newOrderAmount: number = response.value; //TODO aus string number erstellen
-            let newOrder: Order = new Order(order.id, order.orderDate, order.deliveryDate, newOrderAmount);
-            newOrder = await database.changeOrder(order, newOrder);
-        } 
+            let newAmountOfArticle: number = response.value;
+            if (newAmountOfArticle != undefined) {
+                if (newAmountOfArticle.toString().trim().length > 0) {
+                    let newOrder: Order = new Order(order.id, order.orderDate, order.deliveryDate, newAmountOfArticle);
+                    newOrder = await database.changeOrder(order, newOrder);
+                } else {
+                    console.log("Please type in a number");
+                    return this.editOrder(order);
+                }
+            }
+        }
         console.log("You successfully edited this order");
         await mainMenu();
     }
@@ -268,18 +292,18 @@ export class User {
                 choices: [
                     { title: 'I want to edit the customer', value: 0 },
                     { title: 'I want to make an order', value: 1 },
-                    { title: 'I want to view the customer statistics ', value: 2},
-                    { title: 'I want to go back to the main Menu', value: 3},
+                    { title: 'I want to view the customer statistics ', value: 2 },
+                    { title: 'I want to go back to the main Menu', value: 3 },
                 ],
             });
             let select = response.value;
             if (select == 0) {
                 returnCustomer = await this.editCustomer(returnCustomer);
-            }else if (select == 1){
+            } else if (select == 1) {
                 await this.createOrder(returnCustomer);
-            }else if (select == 2){
+            } else if (select == 2) {
                 await this.statisticCustomer(returnCustomer);
-            }else if (select == 3){
+            } else if (select == 3) {
                 await mainMenu();
             }
         }
@@ -290,7 +314,7 @@ export class User {
         let customer: Customer;
         console.log(customer)
         if (pCustomer) {
-            pCustomer = customer;
+            customer = pCustomer;
         } else {
             customer = await this.searchCustomer(false);
         }
@@ -312,9 +336,19 @@ export class User {
                 name: 'value',
                 message: 'Enter the new name:',
             });
-            let newName: string = response.value; 
-            let newCustomer: Customer = new Customer(customer.id, newName, customer.address, customer.customerDiscount);
-            newCustomer = await database.changeCustomer(customer, newCustomer);
+            let newName: string = response.value;
+            if (newName != undefined) {
+                if (newName.trim().length > 0) {
+                    let newCustomer: Customer = new Customer(customer.id, newName, customer.address, customer.customerDiscount);
+                    newCustomer = await database.changeCustomer(customer, newCustomer);
+                } else {
+                    console.log("Please add more than whitespace characters");
+                    return this.editCustomer(customer);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editCustomer(customer);
+            }
         } else if (select == 1) {
             console.log("Address: " + customer.address);
             let response = await prompts({
@@ -322,9 +356,19 @@ export class User {
                 name: 'value',
                 message: 'Enter the new address:',
             });
-            let newAddress: string = response.value; 
-            let newCustomer: Customer = new Customer(customer.id, customer.name, newAddress, customer.customerDiscount);
-            newCustomer = await database.changeCustomer(customer, newCustomer);
+            let newAddress: string = response.value;
+            if (newAddress != undefined) {
+                if (newAddress.trim().length > 0) {
+                    let newCustomer: Customer = new Customer(customer.id, customer.name, newAddress, customer.customerDiscount);
+                    newCustomer = await database.changeCustomer(customer, newCustomer);
+                } else {
+                    console.log("Please add more than whitespace characters");
+                    return this.editCustomer(customer);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editCustomer(customer);
+            }
         } else if (select == 2) {
             console.log("Customer discount: " + customer.customerDiscount)
             let response = await prompts({
@@ -332,10 +376,20 @@ export class User {
                 name: 'value',
                 message: 'Enter the new customer discount:',
             });
-            let newCustomerDiscount: number = response.value; //TODO aus string number erstellen
-            let newCustomer: Customer = new Customer(customer.id, customer.name, customer.address, newCustomerDiscount);
-            newCustomer = await database.changeCustomer(customer, newCustomer);
-        } 
+            let newCustomerDiscount: number = response.value;
+            if (newCustomerDiscount != undefined) {
+                if (newCustomerDiscount.toString().trim().length > 0) {
+                    let newCustomer: Customer = new Customer(customer.id, customer.name, customer.address, newCustomerDiscount);
+                    newCustomer = await database.changeCustomer(customer, newCustomer);
+                } else {
+                    console.log("Please type in a number");
+                    return this.editCustomer(customer);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editCustomer(customer);
+            }
+        }
         console.log("You successfully edited this customer");
         await mainMenu();
     }
@@ -416,29 +470,28 @@ export class User {
                 choices: [
                     { title: 'I want to edit the article', value: 0 },
                     { title: 'I want to make an order', value: 1 },
-                    { title: 'I want to view the article statistics ', value: 2},
-                    { title: 'I want to go back to the main Menu', value: 3},
+                    { title: 'I want to view the article statistics ', value: 2 },
+                    { title: 'I want to go back to the main Menu', value: 3 },
                 ],
             });
             let select = response.value;
             if (select == 0) {
                 returnArticle = await this.editArticle(returnArticle);
-            }else if (select == 1){
+            } else if (select == 1) {
                 await this.createOrder();
-            }else if (select == 2){
+            } else if (select == 2) {
                 await this.statisticArticle(returnArticle);
-            }else if (select == 3){
+            } else if (select == 3) {
                 await mainMenu();
-            }             
+            }
         }
         return returnArticle;
     }
 
     public async editArticle(pArticle?: Article): Promise<Article> {
         let article: Article;
-        console.log(article)
         if (pArticle) {
-            pArticle = article;
+            article = pArticle;
         } else {
             article = await this.searchArticle(false);
         }
@@ -466,77 +519,151 @@ export class User {
                 message: 'Enter the new description:',
             });
             let newDescription: string = response.value;
-            let newArticle: Article = new Article(article.id, newDescription, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle);
+            if (newDescription != undefined) {
+                if (newDescription.trim().length > 0) {
+                    console.log(newDescription);
+                    let newArticle: Article = new Article(article.id, newDescription, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
+                    newArticle = await database.changeArticle(article, newArticle);
+                } else {
+                    console.log("Please add more than whitespace characters");
+                    return this.editArticle(article);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editArticle(article);
+            }
         } else if (select == 1) {
             let response = await prompts({
                 type: 'text',
                 name: 'value',
                 message: 'Enter the new date of market launch:',
             });
-            let newDateOfMarketLaunch: Date = response.value; //TODO aus string datum erstellen
-            let newArticle: Article = new Article(article.id, article.description, newDateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle);
+            let newDateOfMarketLaunchString: string = response.value;
+            let timestamp: number = Date.parse(newDateOfMarketLaunchString);
+            if (!isNaN(timestamp) && !undefined && newDateOfMarketLaunchString.match(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/)) {
+                let newDateOfMarketLaunch: Date = new Date(timestamp);
+                let newArticle: Article = new Article(article.id, article.description, newDateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
+                newArticle = await database.changeArticle(article, newArticle);
+            } else {
+                console.log("This is not a date. Try again");
+                return this.editArticle(article);
+            }
         } else if (select == 2) {
             let response = await prompts({
                 type: 'text',
                 name: 'value',
                 message: 'Price:',
             });
-            let newPrice: number = response.value; //TODO aus string number erstellen
-            let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, newPrice, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle)
+            let newPriceString: string = response.value;
+            let newPrice: number = Number.parseFloat(newPriceString);
+            if (!isNaN(newPrice) && !undefined) {
+                let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, newPrice, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
+                newArticle = await database.changeArticle(article, newArticle)
+            } else {
+                console.log("This is not a number. Try again");
+                return this.editArticle(article);
+            }
         } else if (select == 3) {
             let response = await prompts({
-                type: 'text',
+                type: 'number',
                 name: 'value',
                 message: 'Standard delivery time:',
             });
-            let newStandardDeliveryTime: number = response.value; //TODO aus string number erstellen
-            let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, newStandardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle)
+            let newStandardDeliveryTime: number = response.value;
+            if (newStandardDeliveryTime != undefined) {
+                if (newStandardDeliveryTime.toString().trim().length > 0) {
+                    let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, newStandardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
+                    newArticle = await database.changeArticle(article, newArticle)
+                } else {
+                    console.log("Please type in a number");
+                    return this.editArticle(article);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editArticle(article);
+            }
         } else if (select == 4) {
             let response = await prompts({
-                type: 'text',
+                type: 'number',
                 name: 'value',
                 message: 'Minimum order size:',
             });
-            let newMinimumOrderSize: number = response.value; //TODO aus string number erstellen
-            let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, newMinimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle)
+            let newMinimumOrderSize: number = response.value;
+            if (newMinimumOrderSize != undefined) {
+                if (newMinimumOrderSize.toString().trim().length > 0) {
+                    let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, newMinimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
+                    newArticle = await database.changeArticle(article, newArticle)
+                } else {
+                    console.log("Please type in a number");
+                    return this.editArticle(article);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editArticle(article);
+            }
         } else if (select == 5) {
             let response = await prompts({
-                type: 'text',
+                type: 'number',
                 name: 'value',
                 message: 'Maximum order size:',
             });
-            let newMaximumOrderSize: number = response.value; //TODO aus string number erstellen
-            let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, newMaximumOrderSize, article.discountOrderSize, article.associatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle)
+            let newMaximumOrderSize: number = response.value;
+            if (newMaximumOrderSize != undefined) {
+                if (newMaximumOrderSize.toString().trim().length > 0) {
+                    let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, newMaximumOrderSize, article.discountOrderSize, article.associatedDiscount);
+                    newArticle = await database.changeArticle(article, newArticle)
+                } else {
+                    console.log("Please type in a number");
+                    return this.editArticle(article);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editArticle(article);
+            }
         } else if (select == 6) {
             let response = await prompts({
-                type: 'text',
+                type: 'number',
                 name: 'value',
                 message: 'Discount order size:',
             });
-            let newDiscountOrderSize: number = response.value; //TODO aus string number erstellen
-            let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, newDiscountOrderSize, article.associatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle)
+            let newDiscountOrderSize: number = response.value;
+            if (newDiscountOrderSize != undefined) {
+                if (newDiscountOrderSize.toString().trim().length > 0) {
+                    let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, newDiscountOrderSize, article.associatedDiscount);
+                    newArticle = await database.changeArticle(article, newArticle)
+                } else {
+                    console.log("Please type in a number");
+                    return this.editArticle(article);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editArticle(article);
+            }
         } else if (select == 7) {
             let response = await prompts({
-                type: 'text',
+                type: 'number',
                 name: 'value',
                 message: 'Associated discount:',
             });
-            let newAssociatedDiscount: number = response.value; //TODO aus string number erstellen
-            let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, newAssociatedDiscount);
-            newArticle = await database.changeArticle(article, newArticle)
+            let newAssociatedDiscount: number = response.value;
+            if (newAssociatedDiscount != undefined) {
+                if (newAssociatedDiscount.toString().trim().length > 0) {
+                    let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, newAssociatedDiscount);
+                    newArticle = await database.changeArticle(article, newArticle)
+                } else {
+                    console.log("Please type in a number");
+                    return this.editArticle(article);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editArticle(article);
+            }
         }
         console.log("You successfully edited this article");
         await mainMenu();
     }
 
-    public async statisticArticle(article: Article): Promise<void>{
+    public async statisticArticle(article: Article): Promise<void> {
 
     }
 }

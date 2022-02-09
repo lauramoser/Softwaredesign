@@ -27,3 +27,4 @@ export class StatisticCustomer {
         this.givenDiscount = givenDiscount;
     }
 }
+

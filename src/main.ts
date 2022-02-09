@@ -22,7 +22,7 @@ async function main() {
     await mainMenu();
 }
 
- export async function mainMenu() {
+export async function mainMenu() {
     if (currentUser.role == false) {
         let response = await prompts
             ({
@@ -66,30 +66,30 @@ async function main() {
     }
     if (select == 0) {
         await currentUser.createCustomer(); // done
-    }else if (select == 1){
+    } else if (select == 1) {
         await currentUser.searchCustomer(); // done
-    }else if (select == 2){
+    } else if (select == 2) {
         await currentUser.editCustomer();
-    }else if (select == 3){
-        await currentUser.createOrder(); 
-    }else if (select == 4){
+    } else if (select == 3) {
+        await currentUser.createOrder();
+    } else if (select == 4) {
         await currentUser.searchOrder(); // done
-    }else if (select == 5){
+    } else if (select == 5) {
         await currentUser.editOrder();
-    }else if (select == 6){
+    } else if (select == 6) {
         let article: Article = await currentUser.searchArticle(); //TODO
         console.log(article);
-    }else if (select == 7){
+    } else if (select == 7) {
         await currentUser.editArticle();
-    }else if (select == 8){
+    } else if (select == 8) {
         await currentAdmin.createArticle(); // done
-    }else if (select == 9){
+    } else if (select == 9) {
         await currentAdmin.createUser();    // done
-    }else if (select == 10){
+    } else if (select == 10) {
         await currentAdmin.changeRole();    // done
     }
 }
 
 // TODO
-// Statistiken 
+// Statistiken
 // Zusammenfassung von Order
