@@ -2,6 +2,7 @@ import { database, mainMenu } from "../main";
 import { Article } from "./Article";
 import { Customer } from "./Customer";
 import { Order } from "./Order";
+import * from "./Statistic";
 
 let prompts = require('prompts');
 
@@ -18,7 +19,7 @@ export class User {
         this.role = role;
     }
 
-    public async createOrder(): Promise<Order> {
+    public async createOrder(customer: Customer): Promise<Order> {
         console.log("Please fill in all necessary data for the new Order");
         let response = await prompts({
             type: 'number',
@@ -50,7 +51,7 @@ export class User {
 
         if (!database.saveOrder(id, orderDate, deliveryDate, orderAmount)) {
             console.log("Create order failed");
-            return this.createOrder();
+            return this.createOrder(customer);
         }
         console.log("You successfully created an order")
         await mainMenu();
@@ -275,9 +276,9 @@ export class User {
             if (select == 0) {
                 returnCustomer = await this.editCustomer(returnCustomer);
             }else if (select == 1){
-                await this.createOrder();
+                await this.createOrder(returnCustomer);
             }else if (select == 2){
-                await this.statisticCustomer();
+                await this.statisticCustomer(returnCustomer);
             }else if (select == 3){
                 await mainMenu();
             }
@@ -339,7 +340,7 @@ export class User {
         await mainMenu();
     }
 
-    public async statisticCustomer(): Promise<void> {
+    public async statisticCustomer(customer: Customer): Promise<void> {
 
     }
 
