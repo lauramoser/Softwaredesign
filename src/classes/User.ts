@@ -1,7 +1,7 @@
 import { database, mainMenu } from "../main";
 import { Article } from "./Article";
 import { Customer } from "./Customer";
-import { Order } from "./Order";
+import { LittleOrder, BigOrder } from "./Order";
 import { StatisticArticle, StatisticCustomer } from "./Statistic";
 
 let prompts = require('prompts');
@@ -12,7 +12,7 @@ export class User {
     public role: boolean;
     public gender: string;
 
-    // Array von ArticleOrders
+    private littleOrders: LittleOrder[] = []; // Array von ArticleOrders
 
     constructor(username: string, password: string, role: boolean, gender: string) {
         this.username = username;
@@ -21,17 +21,32 @@ export class User {
         this.role = role;
     }
 
-    public async createOrder(pCustomer?: Customer, pArticle?: Article): Promise<Order> {
-        let customer: Customer;
-        let article: Article;
-        if (pCustomer) {
-            customer = pCustomer;
-
-        } else if (pArticle) {
-            article = pArticle;
+    private async createLittleOrder(article?: Article): Promise<LittleOrder> {
+        if (!article) {
+            article = await this.searchArticle(false);
         }
+        if (article.dateOfMarketLaunch > new Date()) {
+            console.log("this article has not had a market lauch yet\nPlease specify another item");
+            return this.createLittleOrder();
+        }
+        let response = await prompts({
+            type: 'number',
+            name: 'value',
+            message: 'Amount of article:',
+        });
+        let amountOfArticle = response.value; //TODO check if number & >mindestbestellmenge & < maxMenge
+        //TODO preis ausrechnen evtl mit mengenrabatt
+        let price: number = 5;
+        let littleOrder: LittleOrder = {
+            articleId: article.id, amount: amountOfArticle, price: price
+        }
+        return littleOrder;
+    }
 
-        console.log("Please fill in all necessary data for the new Order");
+    private async createBigOrder(customer?: Customer): Promise<BigOrder> {
+        if (!customer) {
+            customer = await this.searchCustomer(false);
+        }
         let response = await prompts({
             type: 'number',
             name: 'value',
@@ -41,66 +56,145 @@ export class User {
         let idAlreadyTaken: boolean = await database.checkOrderId(id);
         if (!idAlreadyTaken) {
             response = await prompts({
-                type: 'number',
+                type: 'string',
                 name: 'value',
-                message: 'Amount of article:',  
+                message: 'Description:',
+            })
+            let description = response.value;
+            let price: number = 0;
+            let deliveryDate: Date = new Date();
+            let orderDate: Date = deliveryDate;
+            let standardDeliveryTime: number = 0;
+            this.littleOrders.forEach(littleOrder => {
+                price = price + littleOrder.price;
+                let article: Article = await database.getArticle(littleOrder.articleId);
+                if(article){
+                if(article.standardDeliveryTime>standardDeliveryTime) {
+                    standardDeliveryTime = article.standardDeliveryTime;
+                }
+            } else {
+                console.log("This Id doesn't exist, id: " + article.id);
+            }
             });
-            let amountOfArticle = response.value;
-            //TODO
-            let price: number = 5;
-            let articleOrder: ArticleOrder = {
-                articleId: id, amount: amountOfArticle, price: price
-            }
-            // article Order in Array von ArticleOrders speichern
-            // sooft wie du willsch für alle Artikel
-            // Wenn fertig und bestellt werden soll
-            // CusomerOrder erstellen mit array von oben und in db speichern
-
-            if (!database.saveOrder(id, amountOfArticle)) {
-                console.log("Create order failed");
-                return this.createOrder(customer, article);
-            }
+            deliveryDate.setDate(deliveryDate.getDate() + standardDeliveryTime);
+            let bigOrder: BigOrder = { id: id, description: description, customerId: customer.id, totalprice: price, orderDate: orderDate, deliveryDate: deliveryDate, littleOrders: this.littleOrders };
+            return bigOrder;
+        } else {
+            console.log("this ID already exists.\nPlease choose another ID!\n")
+            return this.createBigOrder(customer);
         }
-        else {
-            console.log("this ID already exists.\nPlease choose another ID!\n");
-            return this.createOrder();
-        }
-        console.log("You successfully created an order")
-        await this.summary(order);
     }
 
-    public async summary(order: Order): Promise <void>{
+    public async createOrder(pCustomer?: Customer, pArticle?: Article): Promise<BigOrder> {
+        let customer: Customer;
+        let article: Article;
+        if (pArticle) {
+            article = pArticle;
+        }
+        if (pCustomer) {
+            customer = pCustomer;
+        }
+        console.log("Please fill in all necessary data for the new Order");
+        let addOtherOrders: boolean = true;
+        while (addOtherOrders) {
+            let littleOrder: LittleOrder = await this.createLittleOrder(article);
+            this.littleOrders.push(littleOrder);
+            article = null;
+            let response = await prompts({
+                type: 'select',
+                name: 'value',
+                message: 'Do you want to add another article?',
+                choices: [
+                    { title: 'Yes', value: 0 },
+                    { title: 'No', value: 1 },
+                ],
+            });
+            let select = response.value;
+            if (select == 1) {
+                addOtherOrders = false;
+            }
+        }
+        let bigOrder: BigOrder = await this.createBigOrder(customer);
 
+        if (!database.saveOrder(bigOrder)) {
+            console.log("Create order failed");
+            return this.createOrder(customer, article);
+        }
     }
 
-    public async searchOrder(askToEdit?: boolean): Promise<Order> {
+    public async summary(order: BigOrder): Promise<void> {
+        //TODO
+    }
+
+    public async searchOrder(askToEdit?: boolean): Promise<BigOrder> {
         if (askToEdit == undefined)
             askToEdit = true;
-        let returnOrder: Order = undefined;
+        let returnOrder: BigOrder = undefined;
         let choices: { title: string }[] = [];
-        let allOrder: Order[] = await database.getAllOrder();
+        let allOrder: BigOrder[] = await database.getAllBigOrders();
         allOrder.forEach(order => {
             choices.push({ title: order.id.toString() })
         });
         let response = await prompts({
-            type: 'autocomplete',
+            type: 'select',
             name: 'value',
-            message: 'Enter your desired order',
-            choices: choices,
+            message: 'Do you want to search for the Order by ID or by description?',
+            choices: [
+                { title: 'by ID', value: 0 },
+                { title: 'by description', value: 1 },
+            ],
         });
-        let desiredOrderString: string = response.value;
-        console.log(desiredOrderString);
-        if (!isNaN(Number(desiredOrderString))) {
-            console.log(Number(desiredOrderString));
+        let select = response.value;
+        if (select == 1) {
+            let choices: { title: string }[] = [];
+            let allOrder: BigOrder[] = await database.getAllBigOrders();
             allOrder.forEach(order => {
-                if (order.id == Number(desiredOrderString)) {
+                choices.push({ title: order.description });
+            });
+            response = await prompts({
+                type: 'autocomplete',
+                name: 'value',
+                message: 'Enter your desired Order',
+                choices: choices,
+            });
+            let desiredOrder = response.value;
+            allOrder.forEach(order => {
+                if(order.description == desiredOrder) {
                     returnOrder = order;
                 }
             });
-        } else {
-            console.log("ID not found");
-            return await this.searchOrder(askToEdit);
+            if (returnOrder == undefined) {
+                console.log("description not found");
+                return await this.searchOrder(askToEdit);
+            }
         }
+        else {
+            let choices: { title: string }[] = [];
+            let allOrder: BigOrder[] = await database.getAllBigOrders();
+            allOrder.forEach(order => {
+                choices.push({ title: order.id.toString() })
+            });
+            response = await prompts({
+                type: 'autocomplete',
+                name: 'value',
+                message: 'Enter your desired order',
+                choices: choices,
+            });
+            let desiredOrderString: string = response.value;
+            console.log(desiredOrderString);
+            if (!isNaN(Number(desiredOrderString))) {
+                console.log(Number(desiredOrderString));
+                allOrder.forEach(order => {
+                    if (order.id == Number(desiredOrderString)) {
+                        returnOrder = order;
+                    }
+                });
+            } else {
+                console.log("ID not found");
+                return await this.searchOrder(askToEdit);
+            }
+        }
+        console.log(returnOrder);
         if (askToEdit) {
             response = await prompts({
                 type: 'select',
@@ -120,12 +214,12 @@ export class User {
         return returnOrder;
     }
 
-    public async editOrder(pOrder?: Order): Promise<Order> {
-        let order: Order;
+    public async editOrder(pOrder?: BigOrder): Promise<BigOrder> { // TODO edit order bullshit
+        let bigorder: BigOrder;
         if (pOrder) {
-            order = pOrder;
+            bigorder = pOrder;
         } else {
-            order = await this.searchOrder(false);
+            bigorder = await this.searchOrder(false);
         }
         let response = await prompts({
             type: 'select',
@@ -133,12 +227,11 @@ export class User {
             message: 'What would you like to change in this order?',
             choices: [
                 { title: 'Amount of Article', value: 0 },
+                { title: 'Description', value: 1 },
             ],
         });
         let select = response.value;
-       
-        if (select == 2) {
-            console.log("Amount of Article: " + order.amountOfArticle)
+        if (select == 0) { 
             let response = await prompts({
                 type: 'number',
                 name: 'value',
@@ -147,12 +240,31 @@ export class User {
             let newAmountOfArticle: number = response.value;
             if (newAmountOfArticle != undefined) {
                 if (newAmountOfArticle.toString().trim().length > 0) {
-                    let newOrder: Order = new Order(order.id, newAmountOfArticle);
-                    newOrder = await database.changeOrder(order, newOrder);
+                    let newOrder: BigOrder = {id: bigorder.id};
+                    newOrder = await database.changeOrder(bigorder, newOrder);
                 } else {
-                    console.log("Please type in a number");
-                    return this.editOrder(order);
+                    console.log("You have to enter something");
+                    return this.editOrder(bigorder);
                 }
+            }
+        } else if (select == 1) {
+            let response = await prompts({
+                type: 'text',
+                name: 'value',
+                message: 'Enter the new description:',
+            });
+            let newDescription: string = response.value;
+            if (newDescription != undefined) {
+                if (newDescription.trim().length > 0) {
+                    let newOrder: BigOrder = {id: bigorder.id,};
+                    newOrder = await database.changeOrder(bigorder, newOrder);
+                } else {
+                    console.log("Please add more than whitespace characters");
+                    return this.editOrder(bigorder);
+                }
+            } else {
+                console.log("You have to enter something");
+                return this.editOrder(bigorder);
             }
         }
         console.log("You successfully edited this order");

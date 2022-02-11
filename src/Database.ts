@@ -2,7 +2,7 @@ import * as Mongo from "mongodb";
 import { User } from "./classes/User"
 import { Article } from "./classes/Article";
 import { Customer } from "./classes/Customer";
-import { Order } from "./classes/Order";
+import { LittleOrder, BigOrder } from "./classes/Order";
 
 export class Database {
 
@@ -30,34 +30,27 @@ export class Database {
         return this.dbCustomer != undefined;
     }
 
-    public async saveOrder(id: number, amountOfArticle: number): Promise<Order> {
-        let orderdb: Order = <Order><unknown>await this.dbOrder.insertOne({ id: id, amountOfArticle: amountOfArticle })
-        let order: Order = undefined;
-        if (orderdb) {
-            order = new Order(orderdb.id, orderdb.amountOfArticle);
-        }
-        return order;
+    public async saveOrder(bigOrder: BigOrder): Promise<void> {
+        await this.dbOrder.insertOne(bigOrder);
     }
 
-    public async getAllOrder(): Promise<Order[]> {
-        let allOrder: Order[] = <Order[]><unknown>await this.dbOrder.find({}).toArray();
-        //TODO evtl in richtige Artikel konvertieren (new Article(...))
-        return allOrder;
+    public async getAllBigOrders(): Promise<BigOrder[]> {
+        let allBigOrder: BigOrder[] = <BigOrder[]><unknown>await this.dbOrder.find({}).toArray();
+        return allBigOrder;
     }
 
-    public async deleteOrder(id: number): Promise<void> {
+    public async deleteBigOrder(id: number): Promise<void> {
         await this.dbOrder.deleteOne({ id: id });
     }
 
-    public async changeOrder(orderOld: Order, orderNew: Order): Promise<Order> {
-        await this.deleteOrder(orderOld.id);
-        let order: Order = await this.saveOrder(orderNew.id, orderNew.amountOfArticle);
-        return order;
+    public async changeOrder(bigOrderOld: BigOrder, bigOrderNew: BigOrder): Promise<void> {
+        await this.deleteBigOrder(bigOrderOld.id);
+        await this.saveOrder(bigOrderNew);
     }
 
     public async checkOrderId(id: number): Promise<boolean> {
-        let orderdb: Order = <Order><unknown>await this.dbOrder.findOne({ id: id });
-        if (orderdb) {
+        let bigOrderdb: BigOrder = <BigOrder><unknown>await this.dbOrder.findOne({ id: id });
+        if (bigOrderdb) {
             return true;
         }
         return false;
@@ -78,12 +71,12 @@ export class Database {
         return allCustomer;
     }
 
-    public async deletCustomer(id: number): Promise<void> {
+    public async deleteCustomer(id: number): Promise<void> {
         await this.dbCustomer.deleteOne({ id: id });
     }
 
     public async changeCustomer(customerOld: Customer, customerNew: Customer): Promise<Customer> {
-        await this.deleteOrder(customerOld.id);
+        await this.deleteCustomer(customerOld.id);
         let customer: Customer = await this.saveCustomer(customerNew.id, customerNew.name, customerNew.address, customerNew.customerDiscount);
         return customer;
     }
@@ -102,6 +95,13 @@ export class Database {
             return true;
         }
         return false;
+    }
+
+    public async getArticle(id:number): Promise<Article> {
+        let articledb: Article = <Article><unknown>await this.dbArticle.findOne({ id: id });
+        if(articledb)
+        return articledb;
+        return null;
     }
 
     public async getAllArticle(): Promise<Article[]> {
