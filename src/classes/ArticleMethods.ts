@@ -1,13 +1,13 @@
 import { database, mainMenu, orderMethods } from "../main";
 import { Article } from "./Article";
-import { LittleOrder } from "./Order";
+import { BigOrder, LittleOrder } from "./Order";
 import promptstypes from "prompts";
 
 let prompts = require("prompts");
 
 export class ArticleMethods {
 
-    public async createArticle(): Promise<Article> {
+      public async createArticle(): Promise<Article> {
         let returnArticle: Article = undefined;
         console.log("Please fill in all necessary data for the new article");
         let response: promptstypes.Answers<string> = await prompts({
@@ -353,27 +353,37 @@ export class ArticleMethods {
             }
         }
         console.log("You successfully edited this article");
-        await mainMenu();
+        mainMenu();
     }
 
     public async statisticArticle(article: Article): Promise<void> {
-        //check allLittleOrders wo die ID von mitgeshcicktem Artikel dirn ist.
-        let allLittleOrderFromArticle: LittleOrder[] = await database.getAllLittlOrderFromArticle(article.id);
-        let littleOrder: LittleOrder[] = [];
-        for (let i: number = 0; i < allLittleOrderFromArticle.length; i++) {
-            let sizeof = require("sizeof");
-            let amountOfOrders: number = sizeof( allLittleOrderFromArticle);
-            
+        let amountOfOrders: number = 0;
+        let amountOFOrderedArticles: number = 0;
+        let moneyMadeArticle: number = 0;
+        let averageOfMoneyMade: number = 0;
+        let allBigOrders: BigOrder[] = await database.getAllBigOrders();
+        for (let i: number = 0; i < allBigOrders.length; i++) {
+            let bigOrder: BigOrder = allBigOrders[i];
+            let found: boolean = false;
+            for (let j: number = 0; j < bigOrder.littleOrders.length; j++) {
+                let littleOrder: LittleOrder = bigOrder.littleOrders[j];
+                if (littleOrder.articleId == article.id) {
+                    amountOFOrderedArticles = littleOrder.amount + amountOFOrderedArticles;
+                    moneyMadeArticle = littleOrder.price + moneyMadeArticle;
+                    if (!found) {
+                        amountOfOrders = amountOfOrders + 1;
+                        found = true;
+                    }
+                }
+            }
         }
-        //     let amountOfOrders: number;
-        //     let allOrder: BigOrder[] = await database.getAllBigOrders(article.id);
-        //     allOrder.forEach(allBigOrder[] => {
-        //         choices.push({ title: bigOrder.amountOfArticle }); // alle Anzahlen zusammenrechnen 
-        //     });
-        //     let moneyMadeArticle: LittleOrder;
-        //     let averageOfMoneyMade: number = moneyMadeArticle / ;//? durch was?
+        averageOfMoneyMade = Math.round(moneyMadeArticle / amountOFOrderedArticles);
+        console.log("amount of Orders:" + amountOfOrders);
+        console.log("amount of Ordered Articles: " + amountOFOrderedArticles);
+        console.log("money made with that article: " + moneyMadeArticle + "€");
+        console.log("average price of one article: " + averageOfMoneyMade + "€");
 
-        await mainMenu();
+        mainMenu();
     }
 
 
