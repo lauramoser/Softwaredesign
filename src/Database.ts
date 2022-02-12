@@ -1,5 +1,5 @@
 import * as Mongo from "mongodb";
-import { User } from "./classes/User"
+import { User } from "./classes/User";
 import { Article } from "./classes/Article";
 import { Customer } from "./classes/Customer";
 import { LittleOrder, BigOrder } from "./classes/Order";
@@ -34,6 +34,16 @@ export class Database {
         await this.dbOrder.insertOne(bigOrder);
     }
 
+    public async getAllBigOrdersFromCustomer(id: number): Promise<BigOrder[]> {
+        let allBigOrderFromCustomer: BigOrder[] = <BigOrder[]><unknown>await this.dbOrder.find({ id: id}).toArray();
+        return allBigOrderFromCustomer;
+    }
+
+    public async getAllLittlOrderFromArticle(id: number): Promise<LittleOrder[]> {
+        let allLittleOrderFromArticle: LittleOrder[] = <LittleOrder[]><unknown>await this.dbOrder.find({ id: id}).toArray();
+        return allLittleOrderFromArticle;
+    }
+
     public async getAllBigOrders(): Promise<BigOrder[]> {
         let allBigOrder: BigOrder[] = <BigOrder[]><unknown>await this.dbOrder.find({}).toArray();
         return allBigOrder;
@@ -43,9 +53,10 @@ export class Database {
         await this.dbOrder.deleteOne({ id: id });
     }
 
-    public async changeOrder(bigOrderOld: BigOrder, bigOrderNew: BigOrder): Promise<void> {
+    public async changeBigOrder(bigOrderOld: BigOrder, bigOrderNew: BigOrder): Promise<BigOrder> {
         await this.deleteBigOrder(bigOrderOld.id);
         await this.saveOrder(bigOrderNew);
+        return bigOrderNew;
     }
 
     public async checkOrderId(id: number): Promise<boolean> {
@@ -57,7 +68,7 @@ export class Database {
     }
 
     public async saveCustomer(id: number, name: string, address: string, customerDiscount: number): Promise<Customer> {
-        let customerdb: Customer = <Customer><unknown>await this.dbCustomer.insertOne({ id: id, name: name, address: address, customerDiscount: customerDiscount })
+        let customerdb: Customer = <Customer><unknown>await this.dbCustomer.insertOne({ id: id, name: name, address: address, customerDiscount: customerDiscount });
         let customer: Customer = undefined;
         if (customerdb) {
             customer = new Customer(customerdb.id, customerdb.name, customerdb.address, customerdb.customerDiscount);
@@ -65,9 +76,15 @@ export class Database {
         return customer;
     }
 
+    public async getCustomer(id: number): Promise<Customer> {
+        let customerdb: Customer = <Customer><unknown>await this.dbCustomer.findOne({ id: id });
+        if (customerdb)
+            return customerdb;
+        return null;
+    }
+
     public async getAllCustomer(): Promise<Customer[]> {
         let allCustomer: Customer[] = <Customer[]><unknown>await this.dbCustomer.find({}).toArray();
-        //TODO evtl in richtige Artikel konvertieren (new Article(...))
         return allCustomer;
     }
 
@@ -97,16 +114,15 @@ export class Database {
         return false;
     }
 
-    public async getArticle(id:number): Promise<Article> {
+    public async getArticle(id: number): Promise<Article> {
         let articledb: Article = <Article><unknown>await this.dbArticle.findOne({ id: id });
-        if(articledb)
-        return articledb;
+        if (articledb)
+            return articledb;
         return null;
     }
 
     public async getAllArticle(): Promise<Article[]> {
         let allArticle: Article[] = <Article[]><unknown>await this.dbArticle.find({}).toArray();
-        //TODO evtl in richtige Artikel konvertieren (new Article(...))
         return allArticle;
     }
 
@@ -156,7 +172,7 @@ export class Database {
         return user;
     }
 
-    public async changeUser(username: string, user: User): Promise<boolean> {
+    public async changeUsersRole(username: string, user: User): Promise<boolean> {
         let successfull: Mongo.ModifyResult<Mongo.Document> = await this.dbUser.findOneAndReplace({ username: username }, user);
         if (successfull)
             return true;

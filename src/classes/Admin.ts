@@ -1,55 +1,57 @@
 import { database, mainMenu } from "../main";
 import { User } from "./User";
 import { Article } from "./Article";
+import promptstypes from "prompts";
 
-
-let prompts = require('prompts');
+let prompts = require("prompts");
 
 export class Admin extends User {
 
+    //Save data of the logged in user
     constructor(username: string, password: string, role: boolean, gender: string) {
         super(username, password, role, gender);
     }
-
+    
     public async createUser(): Promise<User> {
-        console.log("Please fill in all necessary data for the new User")
-        let response = await prompts({
-            type: 'text',
-            name: 'value',
-            message: 'Username:',
+        console.log("Please fill in all necessary data for the new User");
+        let response: promptstypes.Answers<string> = await prompts({
+            type: "text",
+            name: "value",
+            message: "Username:"
         });
         this.username = response.value;
+        //checks if username is already taken because name must be unique
         let usernameAlreadyTaken: User = await database.checkUser(this.username);
         if (!usernameAlreadyTaken) {
             response = await prompts({
-                type: 'password',
-                name: 'value',
-                message: 'Password:',
+                type: "password",
+                name: "value",
+                message: "Password:",
                 min: 5,
                 max: 10
             });
             this.password = response.value;
 
             response = await prompts({
-                type: 'select',
-                name: 'value',
-                message: 'What gender has the user?',
+                type: "select",
+                name: "value",
+                message: "What gender has the user?",
                 choices: [
-                    { title: 'female' },
-                    { title: 'male' },
-                    { title: 'diverse' },
-                ],
+                    { title: "female" },
+                    { title: "male" },
+                    { title: "diverse" }
+                ]
             });
             this.gender = response.value;
 
             response = await prompts({
-                type: 'select',
-                name: 'value',
-                message: 'What role has the user?',
+                type: "select",
+                name: "value",
+                message: "What role has the user?",
                 choices: [
-                    { title: 'Admin' },
-                    { title: 'User' },
-                ],
+                    { title: "Admin" },
+                    { title: "User" }
+                ]
             });
             this.role = response.value;
 
@@ -58,116 +60,37 @@ export class Admin extends User {
                 return this.createUser();
             }
         } else {
-            console.log("this username already exists.\nPlease choose another username!\n")
+            console.log("this username already exists.\nPlease choose another username!\n");
             return this.createUser();
         }
-        console.log("You have created an user")
+        console.log("You have created an user");
         await mainMenu();
     }
 
     public async changeRole(): Promise<boolean> {
-        console.log("From which user do you want to change the role?")
-        let response = await prompts({
-            type: 'text',
-            name: 'value',
-            message: 'Username:',
+        console.log("From which user do you want to change the role?");
+        let response: promptstypes.Answers<string> = await prompts({
+            type: "text",
+            name: "value",
+            message: "Username:"
         });
-        let username = response.value;
+        let username: string = response.value;
+        //check if the username exists
         let founduser: User = await database.checkUser(username);
         if (founduser) {
+            //reverse boolean of the role 
             founduser.role = !founduser.role;
-            if (await database.changeUser(username, founduser)){
-                console.log("You successfully changed the role of this user")
-                await mainMenu()
+            if (await database.changeUsersRole(username, founduser)) {
+                console.log("You successfully changed the role of this user");
+                await mainMenu();
                 return true;
             }
             else
                 return false;
         } else {
-            console.log("This user doesn't exist")
+            console.log("This user doesn't exist");
             return this.changeRole();
         }
-    }
-
-    public async createArticle(): Promise<Article> {
-        let returnArticle: Article = undefined;
-        console.log("Please fill in all necessary data for the new article")
-        let response = await prompts({
-            type: 'number',
-            name: 'value',
-            message: 'ID:',
-        });
-        let id: number = response.value;
-        let idAlreadyTaken: boolean = await database.checkArticleId(id);
-        if (!idAlreadyTaken) {
-            response = await prompts({
-                type: 'text',
-                name: 'value',
-                message: 'Description:',
-            });
-            let description: string = response.value;
-
-            response = await prompts({
-                type: 'date',
-                name: 'value',
-                message: 'Date of market launch:',
-            });
-            let dateOfMarketLaunch: Date = response.value;
-
-            response = await prompts({
-                type: 'number',
-                name: 'value',
-                message: 'Price:',
-            });
-            let price: number = response.value;
-
-            response = await prompts({
-                type: 'number',
-                name: 'value',
-                message: 'Standard delivery time:',
-            });
-            let standardDeliveryTime: number = response.value;
-
-            response = await prompts({
-                type: 'number',
-                name: 'value',
-                message: 'Minimum order size:',
-            });
-            let minimumOrderSize: number = response.value;
-
-            response = await prompts({
-                type: 'number',
-                name: 'value',
-                message: 'Maximum order size:',
-            });
-            let maximumOrderSize: number = response.value;
-
-            response = await prompts({
-                type: 'number',
-                name: 'value',
-                message: 'Discount order size:',
-            });
-            let discountOrderSize: number = response.value;
-
-            response = await prompts({
-                type: 'number',
-                name: 'value',
-                message: 'Associated discount:',
-            });
-            let associatedDiscount: number = response.value;
-
-            if (!database.saveArticle(id, description, dateOfMarketLaunch, price, standardDeliveryTime, minimumOrderSize, maximumOrderSize, discountOrderSize, associatedDiscount)) {
-                console.log("Create article failed");
-                return this.createArticle();
-            }
-        }
-        else {
-            console.log("this ID already exists.\nPlease choose another ID!\n");
-            return this.createArticle();
-        }
-        console.log("You successfully created an article!")
-        await mainMenu();
-       
     }
 }
 

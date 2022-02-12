@@ -4,9 +4,9 @@ export class StatisticArticle {
     public amountOfOrders: number;
     public amountOFOrderedArticles: number;
     public moneyMadeArticle: number;
-    public averageOfMoneyMade : number;
+    public averageOfMoneyMade: number;
 
-    constructor(amountOfOrders: number, amountOFOrderedArticles: number, moneyMadeArticle: number, averageOfMoneyMade : number) {
+    constructor(amountOfOrders: number, amountOFOrderedArticles: number, moneyMadeArticle: number, averageOfMoneyMade: number) {
         this.amountOfOrders = amountOfOrders;
         this.amountOFOrderedArticles = amountOFOrderedArticles;
         this.moneyMadeArticle = moneyMadeArticle;
@@ -28,3 +28,10 @@ export class StatisticCustomer {
     }
 }
 
+//Article data which must be outputed and calculated in the customer statistics
+export interface ArticleWithEverything {
+    articleId: number;
+    article: Article;
+    completeAmount: number;
+    price: number;
+}

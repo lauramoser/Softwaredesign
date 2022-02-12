@@ -1,18 +1,26 @@
-import { Database } from "./Database"
+import { Database } from "./Database";
 import { Login } from "./classes/Login";
 import { User } from "./classes/User";
 import { Admin } from "./classes/Admin";
-import { Article } from "./classes/Article";
+import promptstypes from "prompts";
+import { OrderMethods } from "./classes/OrderMethods";
+import { ArticleMethods } from "./classes/ArticleMethods";
+import { CustomerMethods } from "./classes/CustomerMethods";
 
 export let database: Database = new Database();
+export let orderMethods: OrderMethods = new OrderMethods();
+export let articleMethods: ArticleMethods = new ArticleMethods();
+export let customerMethods: CustomerMethods = new CustomerMethods();
+
 main();
 
-let prompts = require('prompts');
+let prompts = require("prompts");
 let currentUser: User;
 let currentAdmin: Admin;
 let select: number;
 
-async function main() {
+//connects the database, redirects to the login and stores the user's role for further use
+async function main(): Promise<void> {
     await database.connect();
     let login: Login = new Login();
     currentUser = await login.checkLogin();
@@ -22,74 +30,72 @@ async function main() {
     await mainMenu();
 }
 
-export async function mainMenu() {
+//Menu selection for admin and normal user 
+export async function mainMenu(): Promise<void> {
     if (currentUser.role == false) {
-        let response = await prompts
+        let response: promptstypes.Answers<string> = await prompts
             ({
-                type: 'select',
-                name: 'value',
-                message: 'What do you want to do?',
+                type: "select",
+                name: "value",
+                message: "What do you want to do?",
                 choices: [
-                    { title: 'Create a new customer', value: 0 },
-                    { title: 'Search a customer', value: 1 },
-                    { title: 'Edit a customer', value: 2 },
-                    { title: 'Create a new order', value: 3 },
-                    { title: 'Search an order', value: 4 },
-                    { title: 'Edit an order', value: 5 },
-                    { title: 'Search an article', value: 6 },
-                    { title: 'Edit an article', value: 7 },
-                ],
+                    { title: "Create a new customer", value: 0 },
+                    { title: "Search a customer", value: 1 },
+                    { title: "Edit a customer", value: 2 },
+                    { title: "Create a new order", value: 3 },
+                    { title: "Search an order", value: 4 },
+                    { title: "Edit an order", value: 5 },
+                    { title: "Search an article", value: 6 },
+                    { title: "Edit an article", value: 7 }
+                ]
             });
         select = response.value;
     }
     else {
-        let response = await prompts
+        let response: promptstypes.Answers<string> = await prompts
             ({
-                type: 'select',
-                name: 'value',
-                message: 'What do you want to do?',
+                type: "select",
+                name: "value",
+                message: "What do you want to do?",
                 choices: [
-                    { title: 'Create a new customer', value: 0 },
-                    { title: 'Search a customer', value: 1 },
-                    { title: 'Edit a customer', value: 2 },
-                    { title: 'Create a new order', value: 3 },
-                    { title: 'Search an order', value: 4 },
-                    { title: 'Edit an order', value: 5 },
-                    { title: 'Search an article', value: 6 },
-                    { title: 'Edit an article', value: 7 },
-                    { title: 'Create an article', value: 8 },
-                    { title: 'Create a new user', value: 9 },
-                    { title: 'Change the role of an user', value: 10 },
-                ],
+                    { title: "Create a new customer", value: 0 },
+                    { title: "Search a customer", value: 1 },
+                    { title: "Edit a customer", value: 2 },
+                    { title: "Create a new order", value: 3 },
+                    { title: "Search an order", value: 4 },
+                    { title: "Edit an order", value: 5 },
+                    { title: "Search an article", value: 6 },
+                    { title: "Edit an article", value: 7 },
+                    { title: "Create an article", value: 8 },
+                    { title: "Create a new user", value: 9 },
+                    { title: "Change the role of an user", value: 10 }
+                ]
             });
         select = response.value;
     }
     if (select == 0) {
-        await currentUser.createCustomer(); // done
+        await customerMethods.createCustomer();
     } else if (select == 1) {
-        await currentUser.searchCustomer(); // done
+        await customerMethods.searchCustomer();
     } else if (select == 2) {
-        await currentUser.editCustomer();
+        await customerMethods.editCustomer();
     } else if (select == 3) {
-        await currentUser.createOrder();
+        await orderMethods.createOrder();
     } else if (select == 4) {
-        await currentUser.searchOrder(); // done
+        await orderMethods.searchOrder();
     } else if (select == 5) {
-        await currentUser.editOrder();
+        await orderMethods.editOrder();
     } else if (select == 6) {
-        let article: Article = await currentUser.searchArticle(); //TODO
-        console.log(article);
+        await articleMethods.searchArticle();
     } else if (select == 7) {
-        await currentUser.editArticle();
+        await articleMethods.editArticle();
     } else if (select == 8) {
-        await currentAdmin.createArticle(); // done
+        if (currentAdmin) {
+            await articleMethods.createArticle();
+        }
     } else if (select == 9) {
-        await currentAdmin.createUser();    // done
+        await currentAdmin.createUser();
     } else if (select == 10) {
-        await currentAdmin.changeRole();    // done
+        await currentAdmin.changeRole();
     }
 }
-
-// TODO
-// Statistiken
-// Zusammenfassung von Order
