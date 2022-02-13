@@ -238,12 +238,16 @@ export class CustomerMethods {
     }
 
     public async statisticCustomer(customer: Customer): Promise<void> {
+        //get all BigOrders from this customer
         let allBigOrdersFromCustomer: BigOrder[] = await database.getAllBigOrdersFromCustomer(customer.id);
+        // all little Orders from this customer
         let allLittleOrderFromCustomer: LittleOrder[] = [];
+        // string for console.log
         let bigString: string = "";
+        // all articles this customer has ever ordered with right values
         let articlesWithEverything: ArticleWithEverything[] = [];
 
-        // Alle Kleinen Bestellungen des Kunden in Array speichern
+        // store all small orders of the customer in array
         for (let i: number = 0; i < allBigOrdersFromCustomer.length; i++) {
             let bigOrder: BigOrder = allBigOrdersFromCustomer[i];
             for (let j: number = 0; j < bigOrder.littleOrders.length; j++) {
@@ -251,32 +255,42 @@ export class CustomerMethods {
                 allLittleOrderFromCustomer.push(littleOrder);
             }
         }
-        // let found: boolean = false;
+        // needed if customer ordered the same Article in multiple littleOrders in one bigOrder
+        let found: boolean = false;
 
-
-        // for (let i: number = 0; i < allLittleOrderFromCustomer.length; i++) {
-        //     found = false;
-        //     let littleOrder: LittleOrder = allLittleOrderFromCustomer[i];
-        //     for (let j: number = 0; j < articlesWithEverything.length; j++) {
-        //         let articleWithEverything: ArticleWithEverything = articlesWithEverything[j];
-        //         if (articleWithEverything.articleId == littleOrder.articleId) {
-        //             articleWithEverything.completeAmount = articleWithEverything.completeAmount + littleOrder.amount;
-        //             articleWithEverything.price = articleWithEverything.price + littleOrder.price;
-        //             articlesWithEverything.splice(j, 1);
-        //             articlesWithEverything.push(articleWithEverything);
-        //             found = true;
-        //         }
-        //     }
-        //     if (!found) {
-        //         let article: Article = await database.getArticle(littleOrder.articleId);
-        //         let articleWithEverything: ArticleWithEverything = { articleId: article.id, article: article, completeAmount: littleOrder.amount, price: littleOrder.price };
-        //         articlesWithEverything.push(articleWithEverything);
-        //     }
-        // }
+        // go through all littleOrders from customer
+        for (let i: number = 0; i < allLittleOrderFromCustomer.length; i++) {
+            found = false;
+            let littleOrder: LittleOrder = allLittleOrderFromCustomer[i];
+            // go through all ordered articles to check if this article was already counted
+            for (let j: number = 0; j < articlesWithEverything.length; j++) {
+                let articleWithEverything: ArticleWithEverything = articlesWithEverything[j];
+                if (articleWithEverything.articleId == littleOrder.articleId) {
+                    // if article was already counted, only increase the values from article and replace article values in array
+                    articleWithEverything.completeAmount = articleWithEverything.completeAmount + littleOrder.amount;
+                    articleWithEverything.price = articleWithEverything.price + littleOrder.price;
+                    articlesWithEverything.splice(j, 1);
+                    articlesWithEverything.push(articleWithEverything);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                // if article wasnt found already push article with right values in array
+                let article: Article = await database.getArticle(littleOrder.articleId);
+                let articleWithEverything: ArticleWithEverything = { articleId: article.id, article: article, completeAmount: littleOrder.amount, price: littleOrder.price };
+                articlesWithEverything.push(articleWithEverything);
+            }
+        }
+        // complete money made with customer through all orders
+        let completeAmountPrice: number = 0;
+        // loop through all ordered articles and create a string to log the values for this specific article
         articlesWithEverything.forEach(articleWithEverything => {
-            bigString = bigString + "Article: " + articleWithEverything.article.description + ", Amount of article: " + articleWithEverything.completeAmount + ", Money made with customer:" + articleWithEverything.price + "€";
+            completeAmountPrice = completeAmountPrice + articleWithEverything.price;
+            bigString = bigString + "Article: " + articleWithEverything.article.description + ", Amount of article: " + articleWithEverything.completeAmount + ", Money made with this Article:" + articleWithEverything.price + "€\n";
         });
         let givenDiscount: number = 0;
+        //loop through all Orders and calculate the complete received discount
         for (let i: number = 0; i < allLittleOrderFromCustomer.length; i++) {
             let littleOrder: LittleOrder = allLittleOrderFromCustomer[i];
             givenDiscount = givenDiscount + littleOrder.associatedDiscountInEuro;
@@ -286,7 +300,8 @@ export class CustomerMethods {
             givenDiscount = Math.round(givenDiscount + bigOrder.customerDiscountInEuro);
 
         }
-        bigString = bigString + "\nComplete discount given to the customer " + givenDiscount + "€";
+        bigString = bigString + "Complete discount given to the customer " + givenDiscount + "€\n";
+        bigString = bigString + "Complete Money made with customer: " + completeAmountPrice + "€";
         console.log(bigString);
 
         await mainMenu();

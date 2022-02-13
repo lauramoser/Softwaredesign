@@ -52,7 +52,7 @@ export class Database {
     }
 
     public async getAllBigOrdersFromCustomer(id: number): Promise<BigOrder[]> {
-        let allBigOrderFromCustomer: BigOrder[] = <BigOrder[]><unknown>await this.dbOrder.find({ id: id }).toArray();
+        let allBigOrderFromCustomer: BigOrder[] = <BigOrder[]><unknown>await this.dbOrder.find({ customerId: id }).toArray();
         return allBigOrderFromCustomer;
     }
 

@@ -377,11 +377,12 @@ export class ArticleMethods {
         let averageOfMoneyMade: number = 0;
         //get all complete orders from database
         let allBigOrders: BigOrder[] = await database.getAllBigOrders();
-        //go through all large orders  
+        //loop through all large orders  
         for (let i: number = 0; i < allBigOrders.length; i++) {
             let bigOrder: BigOrder = allBigOrders[i];
+            // needed if customer ordered the same Article in multiple bigOrders
             let found: boolean = false;
-            //go through all little orders in this big order 
+            //loop through all little orders in this big order 
             for (let j: number = 0; j < bigOrder.littleOrders.length; j++) {
                 let littleOrder: LittleOrder = bigOrder.littleOrders[j];
                 //if ID found than calculate amount an price with discount on the variables
