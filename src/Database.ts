@@ -20,7 +20,7 @@ export class Database {
     private readonly dbArticleCollectionName: string = "Article";
     private readonly dbOrderCollectionName: string = "Order";
 
-    //Singleton Design Pattern
+    //singleton Design Pattern
     private constructor() {
         if (Database.instance)
             throw new Error("You have to use getInstance().");
@@ -34,7 +34,7 @@ export class Database {
         return Database.instance;
     }
 
-
+    //C
     public async connect(): Promise<boolean> {
         const uri: string = "mongodb+srv://MyMongoDBUser:Studium2019@gis-ist-geil.zqrzt.mongodb.net/ERCM-System?retryWrites=true&w=majority";
         this.mongoClient = new Mongo.MongoClient(uri, {});
