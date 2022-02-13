@@ -73,7 +73,7 @@ export class ArticleMethods {
                 message: "Associated discount in %:"
             });
             let associatedDiscount: number = response.value;
-            //if saving in database failed
+            //if saving in database failed go back to beginning
             if (!database.saveArticle(id, description, dateOfMarketLaunch, price, standardDeliveryTime, minimumOrderSize, maximumOrderSize, discountOrderSize, associatedDiscount)) {
                 console.log("Create article failed");
                 return this.createArticle();
@@ -89,7 +89,7 @@ export class ArticleMethods {
     }
 
     public async searchArticle(askToEdit?: boolean): Promise<Article> {
-        //if askToEdit = false then user comes from searcharticle() 
+        //if askToEdit = false then user comes from editarticle() 
         if (askToEdit == undefined)
             askToEdit = true;
         let returnArticle: Article = undefined;
@@ -104,9 +104,10 @@ export class ArticleMethods {
         });
         let select: number = response.value;
         if (select == 1) {
-            //Array for all existing articles 
+            //array for all existing articles 
             let choices: { title: string }[] = [];
             let allArticle: Article[] = await database.getAllArticle();
+            //add all found article descriptions into the array
             allArticle.forEach(article => {
                 choices.push({ title: article.description });
             });
@@ -117,6 +118,7 @@ export class ArticleMethods {
                 choices: choices
             });
             let desiredArticle: string = response.value;
+            //search for the entered description in array 
             allArticle.forEach(article => {
                 if (article.description == desiredArticle) {
                     returnArticle = article;
@@ -154,6 +156,7 @@ export class ArticleMethods {
             }
         }
         console.log(returnArticle);
+        //if user comes from main menu then askToEdit = true
         if (askToEdit) {
             response = await prompts({
                 type: "select",
@@ -185,6 +188,7 @@ export class ArticleMethods {
 
     public async editArticle(pArticle?: Article): Promise<Article> {
         let article: Article;
+        //when user comes from searchArticle() article is passed in 
         if (pArticle) {
             article = pArticle;
         } else {
@@ -214,9 +218,12 @@ export class ArticleMethods {
                 message: "Enter the new description:"
             });
             let newDescription: string = response.value;
+            // check if something was entered
             if (newDescription != undefined) {
+                //check if more than just whitespaces were entered
                 if (newDescription.trim().length > 0) {
                     console.log(newDescription);
+                    //save article with unchanged and new variable 
                     let newArticle: Article = new Article(article.id, newDescription, article.dateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
                     newArticle = await database.changeArticle(article, newArticle);
                 } else {
@@ -234,7 +241,9 @@ export class ArticleMethods {
                 message: "Enter the new date of market launch:"
             });
             let newDateOfMarketLaunchString: string = response.value;
+            //convert string to date 
             let timestamp: number = Date.parse(newDateOfMarketLaunchString);
+            //check if the entered is a date
             if (!isNaN(timestamp) && !undefined && newDateOfMarketLaunchString.match(/^\d{4}-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])$/)) {
                 let newDateOfMarketLaunch: Date = new Date(timestamp);
                 let newArticle: Article = new Article(article.id, article.description, newDateOfMarketLaunch, article.price, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
@@ -247,10 +256,12 @@ export class ArticleMethods {
             let response: promptstypes.Answers<string> = await prompts({
                 type: "text",
                 name: "value",
-                message: "Price:"
+                message: "Price in €:"
             });
             let newPriceString: string = response.value;
+            //convert string to number  
             let newPrice: number = Number.parseFloat(newPriceString);
+            //check if the entered is a number
             if (!isNaN(newPrice) && !undefined) {
                 let newArticle: Article = new Article(article.id, article.description, article.dateOfMarketLaunch, newPrice, article.standardDeliveryTime, article.minimumOrderSize, article.maximumOrderSize, article.discountOrderSize, article.associatedDiscount);
                 newArticle = await database.changeArticle(article, newArticle);
@@ -338,7 +349,7 @@ export class ArticleMethods {
             let response: promptstypes.Answers<string> = await prompts({
                 type: "number",
                 name: "value",
-                message: "Associated discount:"
+                message: "Associated discount in %:"
             });
             let newAssociatedDiscount: number = response.value;
             if (newAssociatedDiscount != undefined) {
@@ -359,19 +370,25 @@ export class ArticleMethods {
     }
 
     public async statisticArticle(article: Article): Promise<void> {
+        //declaration of variables for statistics 
         let amountOfOrders: number = 0;
         let amountOFOrderedArticles: number = 0;
         let moneyMadeArticle: number = 0;
         let averageOfMoneyMade: number = 0;
+        //get all complete orders from database
         let allBigOrders: BigOrder[] = await database.getAllBigOrders();
+        //go through all large orders  
         for (let i: number = 0; i < allBigOrders.length; i++) {
             let bigOrder: BigOrder = allBigOrders[i];
             let found: boolean = false;
+            //go through all little orders in this big order 
             for (let j: number = 0; j < bigOrder.littleOrders.length; j++) {
                 let littleOrder: LittleOrder = bigOrder.littleOrders[j];
+                //if ID found than calculate amount an price with discount on the variables
                 if (littleOrder.articleId == article.id) {
                     amountOFOrderedArticles = littleOrder.amount + amountOFOrderedArticles;
                     moneyMadeArticle = littleOrder.price + moneyMadeArticle;
+                    //if the found article has not been found yet then set amountOfOrder + 1
                     if (!found) {
                         amountOfOrders = amountOfOrders + 1;
                         found = true;
@@ -379,6 +396,7 @@ export class ArticleMethods {
                 }
             }
         }
+        //calculate average money made with this article 
         averageOfMoneyMade = Math.round(moneyMadeArticle / amountOFOrderedArticles);
         console.log("amount of Orders:" + amountOfOrders);
         console.log("amount of Ordered Articles: " + amountOFOrderedArticles);

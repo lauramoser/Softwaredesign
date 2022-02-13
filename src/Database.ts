@@ -34,7 +34,7 @@ export class Database {
         return Database.instance;
     }
 
-    //C
+    //connect mongoDB
     public async connect(): Promise<boolean> {
         const uri: string = "mongodb+srv://MyMongoDBUser:Studium2019@gis-ist-geil.zqrzt.mongodb.net/ERCM-System?retryWrites=true&w=majority";
         this.mongoClient = new Mongo.MongoClient(uri, {});
@@ -95,8 +95,9 @@ export class Database {
 
     public async getCustomer(id: number): Promise<Customer> {
         let customerdb: Customer = <Customer><unknown>await this.dbCustomer.findOne({ id: id });
-        if (customerdb)
+        if (customerdb) {
             return customerdb;
+        }
         return null;
     }
 
@@ -133,8 +134,9 @@ export class Database {
 
     public async getArticle(id: number): Promise<Article> {
         let articledb: Article = <Article><unknown>await this.dbArticle.findOne({ id: id });
-        if (articledb)
+        if (articledb) {
             return articledb;
+        }
         return null;
     }
 
@@ -165,14 +167,13 @@ export class Database {
     public async checkUser(username: string, password?: string): Promise<User> {
         let userdb: User;
         let user: User;
-        if (password)
+        if (password){
             userdb = <User><unknown>await this.dbUser.findOne({ $and: [{ username: username }, { password: password }] });
-        else
+        } else {
             userdb = <User><unknown>await this.dbUser.findOne({ username: username });
-
+        }
         if (userdb) {
             user = new User(userdb.username, userdb.password, userdb.role, userdb.gender);
-
         }
         return user;
     }
@@ -181,9 +182,6 @@ export class Database {
         let userdb: User = <User><unknown>await this.dbUser.insertOne({ username: username, password: password, gender: gender, role: role });
         let user: User = undefined;
         if (userdb) {
-            // Neuer User erzeugen und Werte umspeichern damit alle Werte die nur in der Datenbank vorhanden sind auch gespeichert werden
-            // (z.B. nicht nur username und passwort sondern auch Profilbild (bisher nur in der DB))
-            // und alle Methoden aufrufbar sind (nur bei dem Nutzer aus der DB kann man nicht user.methode() aufrufen)
             user = new User(userdb.username, userdb.password, userdb.role, userdb.gender);
         }
         return user;
@@ -191,8 +189,9 @@ export class Database {
 
     public async changeUsersRole(username: string, user: User): Promise<boolean> {
         let successfull: Mongo.ModifyResult<Mongo.Document> = await this.dbUser.findOneAndReplace({ username: username }, user);
-        if (successfull)
+        if (successfull) {
             return true;
+        }
         return false;
     }
 }

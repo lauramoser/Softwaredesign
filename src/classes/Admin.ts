@@ -32,7 +32,6 @@ export class Admin extends User {
             });
             let newPassword: string = response.value;
             //checks if password is secure
-            console.log(newPassword);
             if (testPasswordSecurity(newPassword)) {
                 response = await prompts({
                     type: "select",
@@ -44,7 +43,7 @@ export class Admin extends User {
                         { title: "diverse" }
                     ]
                 });
-                this.gender = response.value;
+                let newgender: string = response.value;
 
                 response = await prompts({
                     type: "select",
@@ -55,9 +54,9 @@ export class Admin extends User {
                         { title: "User" }
                     ]
                 });
-                this.role = response.value;
+                let newrole: boolean = response.value;
                 //if saving in database failed
-                if (!database.saveUser(this.username, this.password, this.gender, this.role)) {
+                if (!database.saveUser(newUsername, newPassword, newgender, newrole)) {
                     console.log("Create user failed");
                     return this.createUser();
                 }

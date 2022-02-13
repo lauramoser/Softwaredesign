@@ -17,6 +17,7 @@ export class CustomerMethods {
             message: "ID:"
         });
         let id: number = response.value;
+        //checks if id is already taken because id must be unique
         let idAlreadyTaken: boolean = await database.checkCustomerId(id);
         if (!idAlreadyTaken) {
             response = await prompts({
@@ -39,7 +40,7 @@ export class CustomerMethods {
                 message: "Customer Discount in percent:"
             });
             let customerDiscount: number = response.value;
-
+            //if saving in database failed go back to beginning
             if (!database.saveCustomer(id, name, address, customerDiscount)) {
                 console.log("Create article failed");
                 return this.createCustomer();
@@ -55,6 +56,7 @@ export class CustomerMethods {
     }
 
     public async searchCustomer(askToEdit?: boolean): Promise<Customer> {
+        //if askToEdit = false then user comes from editCustomer()
         if (askToEdit == undefined)
             askToEdit = true;
         let returnCustomer: Customer = undefined;
@@ -69,8 +71,10 @@ export class CustomerMethods {
         });
         let select: number = response.value;
         if (select == 1) {
+            //array for all existing customers 
             let choices: { title: string }[] = [];
             let allCustomer: Customer[] = await database.getAllCustomer();
+             //add all found customer descriptions into the array
             allCustomer.forEach(customer => {
                 choices.push({ title: customer.name });
             });
@@ -81,6 +85,7 @@ export class CustomerMethods {
                 choices: choices
             });
             let desiredCustomer: string = response.value;
+            //search for the entered name in array 
             allCustomer.forEach(customer => {
                 if (customer.name == desiredCustomer) {
                     returnCustomer = customer;
@@ -104,7 +109,7 @@ export class CustomerMethods {
                 choices: choices
             });
             let desiredCustomerString: string = response.value;
-            console.log(desiredCustomerString);
+            //check if a number has been entered
             if (!isNaN(Number(desiredCustomerString))) {
                 console.log(Number(desiredCustomerString));
                 allCustomer.forEach(customer => {
@@ -147,6 +152,7 @@ export class CustomerMethods {
     public async editCustomer(pCustomer?: Customer): Promise<Customer> {
         let customer: Customer;
         console.log(customer);
+        //when user comes from searchCustomer() customer is passed in 
         if (pCustomer) {
             customer = pCustomer;
         } else {
@@ -171,8 +177,11 @@ export class CustomerMethods {
                 message: "Enter the new name:"
             });
             let newName: string = response.value;
+            // check if something was entered
             if (newName != undefined) {
+                //check if more than just whitespaces were entered
                 if (newName.trim().length > 0) {
+                    //save customer with unchanged and new variable 
                     let newCustomer: Customer = new Customer(customer.id, newName, customer.address, customer.customerDiscount);
                     newCustomer = await database.changeCustomer(customer, newCustomer);
                 } else {
@@ -242,28 +251,28 @@ export class CustomerMethods {
                 allLittleOrderFromCustomer.push(littleOrder);
             }
         }
-        let found: boolean = false;
+        // let found: boolean = false;
 
 
-        for (let i: number = 0; i < allLittleOrderFromCustomer.length; i++) {
-            found = false;
-            let littleOrder: LittleOrder = allLittleOrderFromCustomer[i];
-            for (let j: number = 0; j < articlesWithEverything.length; j++) {
-                let articleWithEverything: ArticleWithEverything = articlesWithEverything[j];
-                if (articleWithEverything.articleId == littleOrder.articleId) {
-                    articleWithEverything.completeAmount = articleWithEverything.completeAmount + littleOrder.amount;
-                    articleWithEverything.price = articleWithEverything.price + littleOrder.price;
-                    articlesWithEverything.splice(j, 1);
-                    articlesWithEverything.push(articleWithEverything);
-                    found = true;
-                }
-            }
-            if (!found) {
-                let article: Article = await database.getArticle(littleOrder.articleId);
-                let articleWithEverything: ArticleWithEverything = { articleId: article.id, article: article, completeAmount: littleOrder.amount, price: littleOrder.price };
-                articlesWithEverything.push(articleWithEverything);
-            }
-        }
+        // for (let i: number = 0; i < allLittleOrderFromCustomer.length; i++) {
+        //     found = false;
+        //     let littleOrder: LittleOrder = allLittleOrderFromCustomer[i];
+        //     for (let j: number = 0; j < articlesWithEverything.length; j++) {
+        //         let articleWithEverything: ArticleWithEverything = articlesWithEverything[j];
+        //         if (articleWithEverything.articleId == littleOrder.articleId) {
+        //             articleWithEverything.completeAmount = articleWithEverything.completeAmount + littleOrder.amount;
+        //             articleWithEverything.price = articleWithEverything.price + littleOrder.price;
+        //             articlesWithEverything.splice(j, 1);
+        //             articlesWithEverything.push(articleWithEverything);
+        //             found = true;
+        //         }
+        //     }
+        //     if (!found) {
+        //         let article: Article = await database.getArticle(littleOrder.articleId);
+        //         let articleWithEverything: ArticleWithEverything = { articleId: article.id, article: article, completeAmount: littleOrder.amount, price: littleOrder.price };
+        //         articlesWithEverything.push(articleWithEverything);
+        //     }
+        // }
         articlesWithEverything.forEach(articleWithEverything => {
             bigString = bigString + "Article: " + articleWithEverything.article.description + ", Amount of article: " + articleWithEverything.completeAmount + ", Money made with customer:" + articleWithEverything.price + "€";
         });
@@ -274,11 +283,10 @@ export class CustomerMethods {
         }
         for (let i: number = 0; i < allBigOrdersFromCustomer.length; i++) {
             let bigOrder: BigOrder = allBigOrdersFromCustomer[i];
-            givenDiscount = givenDiscount + bigOrder.customerDiscountInEuro;
+            givenDiscount = Math.round(givenDiscount + bigOrder.customerDiscountInEuro);
 
         }
-        let roundedGivenDiscount: number = Math.round((givenDiscount + Number.EPSILON) * 100) / 100;
-        bigString = bigString + "\nComplete discount given to the customer " + roundedGivenDiscount + "€";
+        bigString = bigString + "\nComplete discount given to the customer " + givenDiscount + "€";
         console.log(bigString);
 
         await mainMenu();
