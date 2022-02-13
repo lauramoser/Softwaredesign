@@ -7,12 +7,14 @@ import { OrderMethods } from "./classes/OrderMethods";
 import { ArticleMethods } from "./classes/ArticleMethods";
 import { CustomerMethods } from "./classes/CustomerMethods";
 
-export let database: Database = new Database();
+export let database: Database = Database.getInstance();
 export let orderMethods: OrderMethods = new OrderMethods();
 export let articleMethods: ArticleMethods = new ArticleMethods();
 export let customerMethods: CustomerMethods = new CustomerMethods();
 
 main();
+// let x: boolean = Admin.testPasswordSecurity("Abcd!234");
+// console.log(x);
 
 let prompts = require("prompts");
 let currentUser: User;
@@ -89,7 +91,7 @@ export async function mainMenu(): Promise<void> {
         await articleMethods.searchArticle();
     } else if (select == 7) {
         await articleMethods.editArticle();
-    } else if (select == 8) {
+    } else if (select == 8) { // If Abfrage entfernen, da User nie auf create Article kommt
         if (currentAdmin) {
             await articleMethods.createArticle();
         }

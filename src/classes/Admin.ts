@@ -1,17 +1,17 @@
 import { database, mainMenu } from "../main";
 import { User } from "./User";
-import { Article } from "./Article";
 import promptstypes from "prompts";
+import { testPasswordSecurity } from "./TestMethods";
 
 let prompts = require("prompts");
 
 export class Admin extends User {
 
-    //Save data of the logged in user
+    //constructor to create new user
     constructor(username: string, password: string, role: boolean, gender: string) {
         super(username, password, role, gender);
     }
-    
+
     public async createUser(): Promise<User> {
         console.log("Please fill in all necessary data for the new User");
         let response: promptstypes.Answers<string> = await prompts({
@@ -19,44 +19,50 @@ export class Admin extends User {
             name: "value",
             message: "Username:"
         });
-        this.username = response.value;
+        let newUsername: string = response.value;
         //checks if username is already taken because name must be unique
-        let usernameAlreadyTaken: User = await database.checkUser(this.username);
+        let usernameAlreadyTaken: User = await database.checkUser(newUsername);
         if (!usernameAlreadyTaken) {
             response = await prompts({
                 type: "password",
                 name: "value",
-                message: "Password:",
+                message: "Password (Minimum eight characters, at least one uppercase letter, one lowercase letter, one number and one special character):",
                 min: 5,
                 max: 10
             });
-            this.password = response.value;
+            let newPassword: string = response.value;
+            //checks if password is secure
+            console.log(newPassword);
+            if (testPasswordSecurity(newPassword)) {
+                response = await prompts({
+                    type: "select",
+                    name: "value",
+                    message: "What gender has the user?",
+                    choices: [
+                        { title: "female" },
+                        { title: "male" },
+                        { title: "diverse" }
+                    ]
+                });
+                this.gender = response.value;
 
-            response = await prompts({
-                type: "select",
-                name: "value",
-                message: "What gender has the user?",
-                choices: [
-                    { title: "female" },
-                    { title: "male" },
-                    { title: "diverse" }
-                ]
-            });
-            this.gender = response.value;
-
-            response = await prompts({
-                type: "select",
-                name: "value",
-                message: "What role has the user?",
-                choices: [
-                    { title: "Admin" },
-                    { title: "User" }
-                ]
-            });
-            this.role = response.value;
-
-            if (!database.saveUser(this.username, this.password, this.gender, this.role)) {
-                console.log("Create user failed");
+                response = await prompts({
+                    type: "select",
+                    name: "value",
+                    message: "What role has the user?",
+                    choices: [
+                        { title: "Admin" },
+                        { title: "User" }
+                    ]
+                });
+                this.role = response.value;
+                //if saving in database failed
+                if (!database.saveUser(this.username, this.password, this.gender, this.role)) {
+                    console.log("Create user failed");
+                    return this.createUser();
+                }
+            } else {
+                console.log("Please type in a safe password");
                 return this.createUser();
             }
         } else {

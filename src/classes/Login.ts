@@ -33,10 +33,10 @@ export class Login {
                 if (user) {
                     proceed = true;
                 } else {
-                    console.log("Password is wrong");
+                    console.log("Password is wrong\nPlease try again");
                 }
             } else {
-                console.log("Username doesnt exists");
+                console.log("Username does not exist\nPlease try again");
             }
         }
         console.log("Hello " + this.username + "!");

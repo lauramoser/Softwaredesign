@@ -7,7 +7,7 @@ let prompts = require("prompts");
 
 export class ArticleMethods {
 
-      public async createArticle(): Promise<Article> {
+    public async createArticle(): Promise<Article> {
         let returnArticle: Article = undefined;
         console.log("Please fill in all necessary data for the new article");
         let response: promptstypes.Answers<string> = await prompts({
@@ -16,6 +16,7 @@ export class ArticleMethods {
             message: "ID:"
         });
         let id: number = response.value;
+        //checks if id is already taken because id must be unique
         let idAlreadyTaken: boolean = await database.checkArticleId(id);
         if (!idAlreadyTaken) {
             response = await prompts({
@@ -31,11 +32,10 @@ export class ArticleMethods {
                 message: "Date of market launch:"
             });
             let dateOfMarketLaunch: Date = response.value;
-
             response = await prompts({
                 type: "number",
                 name: "value",
-                message: "Price:"
+                message: "Price in €:"
             });
             let price: number = response.value;
 
@@ -70,10 +70,10 @@ export class ArticleMethods {
             response = await prompts({
                 type: "number",
                 name: "value",
-                message: "Associated discount:"
+                message: "Associated discount in %:"
             });
             let associatedDiscount: number = response.value;
-
+            //if saving in database failed
             if (!database.saveArticle(id, description, dateOfMarketLaunch, price, standardDeliveryTime, minimumOrderSize, maximumOrderSize, discountOrderSize, associatedDiscount)) {
                 console.log("Create article failed");
                 return this.createArticle();
@@ -84,11 +84,12 @@ export class ArticleMethods {
             return this.createArticle();
         }
         console.log("You successfully created an article!");
-        await mainMenu();
+        mainMenu();
 
     }
 
     public async searchArticle(askToEdit?: boolean): Promise<Article> {
+        //if askToEdit = false then user comes from searcharticle() 
         if (askToEdit == undefined)
             askToEdit = true;
         let returnArticle: Article = undefined;
@@ -103,6 +104,7 @@ export class ArticleMethods {
         });
         let select: number = response.value;
         if (select == 1) {
+            //Array for all existing articles 
             let choices: { title: string }[] = [];
             let allArticle: Article[] = await database.getAllArticle();
             allArticle.forEach(article => {
@@ -385,6 +387,5 @@ export class ArticleMethods {
 
         mainMenu();
     }
-
 
 }

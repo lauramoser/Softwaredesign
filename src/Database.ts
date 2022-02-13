@@ -6,17 +6,34 @@ import { LittleOrder, BigOrder } from "./classes/Order";
 
 export class Database {
 
+    private static instance: Database;
     private readonly dbName: string = "ERCM-System";
     private mongoClient!: Mongo.MongoClient;
     private dbCustomer!: Mongo.Collection;
     private dbUser!: Mongo.Collection;
     private dbArticle!: Mongo.Collection;
     private dbOrder!: Mongo.Collection;
+    
 
     private readonly dbCustomerCollectionName: string = "Customer";
     private readonly dbUserCollectionName: string = "User";
     private readonly dbArticleCollectionName: string = "Article";
     private readonly dbOrderCollectionName: string = "Order";
+
+    //Singleton Design Pattern
+    private constructor() {
+        if (Database.instance)
+            throw new Error("You have to use getInstance().");
+        Database.instance = this;
+    }
+
+    public static getInstance(): Database {
+        if (!Database.instance) {
+            Database.instance = new Database();
+        }
+        return Database.instance;
+    }
+
 
     public async connect(): Promise<boolean> {
         const uri: string = "mongodb+srv://MyMongoDBUser:Studium2019@gis-ist-geil.zqrzt.mongodb.net/ERCM-System?retryWrites=true&w=majority";
@@ -35,12 +52,12 @@ export class Database {
     }
 
     public async getAllBigOrdersFromCustomer(id: number): Promise<BigOrder[]> {
-        let allBigOrderFromCustomer: BigOrder[] = <BigOrder[]><unknown>await this.dbOrder.find({ id: id}).toArray();
+        let allBigOrderFromCustomer: BigOrder[] = <BigOrder[]><unknown>await this.dbOrder.find({ id: id }).toArray();
         return allBigOrderFromCustomer;
     }
 
     public async getAllLittlOrderFromArticle(id: number): Promise<LittleOrder[]> {
-        let allLittleOrderFromArticle: LittleOrder[] = <LittleOrder[]><unknown>await this.dbOrder.find({ id: id}).toArray();
+        let allLittleOrderFromArticle: LittleOrder[] = <LittleOrder[]><unknown>await this.dbOrder.find({ id: id }).toArray();
         return allLittleOrderFromArticle;
     }
 
