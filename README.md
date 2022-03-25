@@ -10,7 +10,7 @@ Nachdem das Repository geklont wurde, müssen folgende Befehle im Terminal ausge
 
 Für den UnitTest benötigt man den Befehl: npm run test
 
-Da man sich in diesem System nicht registrieren kann, können dieses Eingabedaten verwendet werden 
+Da man sich in diesem System nicht registrieren kann, können diese Eingabedaten verwendet werden 
 
 Admin:
 
