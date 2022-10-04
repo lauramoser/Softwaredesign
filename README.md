@@ -1,5 +1,6 @@
 # Prüfungsaufgabe ERCM-System
 Laura Moser MIB
+WiSe 21/22
 
 Um diesen Code auszuführen wird eine Node.js benötigt.
 Nachdem das Repository geklont wurde, müssen folgende Befehle im Terminal ausgeführt werden:
